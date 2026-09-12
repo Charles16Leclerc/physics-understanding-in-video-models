@@ -91,7 +91,7 @@ VLM 不是“只选排行榜最强”。需要同时满足：
 
 其结构大致为：
 
-\[
+$$
 \text{Video}
 \rightarrow
 \text{Video ViT}
@@ -99,7 +99,7 @@ VLM 不是“只选排行榜最强”。需要同时满足：
 \text{Patch Merger}
 \rightarrow
 \text{Qwen2.5 LLM}.
-\]
+$$
 
 视觉塔大致：
 
@@ -133,9 +133,9 @@ Patch Merger 是相对简单的 projection/merging 结构，而不是独立大�
 
 因此 VLM 的 layerwise analysis 必须同时指定：
 
-\[
+$$
 \text{layer} + \text{token position/type}.
-\]
+$$
 
 ## 6. 为什么不首选 Qwen3-VL
 
@@ -158,13 +158,13 @@ Qwen3-VL 更强、更现代，但采用 multi-level visual injection / DeepStack
 
 LLaVA-OneVision 是很好的第二个 VLM，因为结构经典、干净：
 
-\[
+$$
 \text{SigLIP image encoder}
 \rightarrow
 \text{simple MLP projector}
 \rightarrow
 \text{Qwen2 LLM}.
-\]
+$$
 
 近似结构：
 
@@ -200,15 +200,15 @@ LLaVA-OneVision 是很好的第二个 VLM，因为结构经典、干净：
 
 一个值得强调的规模差异：
 
-\[
+$$
 \text{V-JEPA predictor}\approx22M
-\]
+$$
 
 而：
 
-\[
+$$
 \text{VLM LLM}\approx7B.
-\]
+$$
 
 两者容量相差数百倍，且功能先验完全不同。这正是本项目比较价值的一部分：
 

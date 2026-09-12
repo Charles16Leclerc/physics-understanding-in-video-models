@@ -11,9 +11,9 @@ tags: [theory, state, prediction, judgment]
 
 早期曾采用较强叙述：
 
-\[
+$$
 \text{State}\rightarrow\text{Prediction}\rightarrow\text{Judgment}.
-\]
+$$
 
 ### Superseded
 
@@ -29,7 +29,7 @@ tags: [theory, state, prediction, judgment]
 
 以避免暗示强因果先后关系。
 
-## 2. 为什么三分法仍然不是 arbitrary
+## 2. 为什么三分法不是 arbitrary
 
 三分法来源于三个相互独立但一致的考虑：
 
@@ -43,9 +43,9 @@ tags: [theory, state, prediction, judgment]
 
 V-JEPA 结构：
 
-\[
+$$
 X\xrightarrow{E}Z\xrightarrow{P}\hat Z.
-\]
+$$
 
 ### 3.1 Encoder 的理论角色
 
@@ -99,7 +99,7 @@ Judgment 不是 V-JEPA 的 native training objective，因此没有理论理由�
 
 典型现代 video-capable VLM：
 
-\[
+$$
 \text{video}
 \rightarrow
 \text{vision tower}
@@ -109,15 +109,15 @@ Judgment 不是 V-JEPA 的 native training objective，因此没有理论理由�
 \text{LLM}
 \rightarrow
 \text{text output}.
-\]
+$$
 
 ### 4.1 没有显式 future predictor
 
 VLM 的大规模训练包括视觉预训练、多模态 alignment、captioning、VQA、instruction tuning 等，但通常没有一个独立模块被训练成：
 
-\[
+$$
 z_t\rightarrow z_{t+1}.
-\]
+$$
 
 因此对 VLM 来说，Prediction 与 Judgment 都可以只是“根据视觉内容回答问题”。
 
@@ -125,14 +125,14 @@ z_t\rightarrow z_{t+1}.
 
 合理先验：
 
-\[
+$$
 \text{visual state}
 \rightarrow
 \begin{cases}
 \text{prediction}\\
 \text{judgment}
 \end{cases}
-\]
+$$
 
 甚至 Judgment 可能比 Prediction 更符合 VLM 原生 QA 形式：
 
@@ -143,13 +143,13 @@ z_t\rightarrow z_{t+1}.
 
 VLM 可能通过：
 
-\[
+$$
 \text{coarse visual evidence}
 +
 \text{textual/world prior}
 \rightarrow
 \text{judgment}
-\]
+$$
 
 完成物理判断，而无需形成 metrically precise 的内部 velocity / acceleration state。
 
@@ -164,11 +164,11 @@ VLM 可能通过：
 
 若 benchmark target 需要 nonlinear state relation，则预测：
 
-\[
+$$
 C^*_{\text{Prediction}}(P)
 <
 C^*_{\text{Prediction}}(E)
-\]
+$$
 
 即 predictor 层所需 readout class 更低 / accessibility 更高。
 
@@ -193,9 +193,9 @@ C^*_{\text{Prediction}}(E)
 
 单一 linear probe 只能回答：
 
-\[
+$$
 \text{Can }y\text{ be linearly decoded from a chosen summary of }h_l?
-\]
+$$
 
 本项目更关注：
 
@@ -203,13 +203,13 @@ C^*_{\text{Prediction}}(E)
 
 可定义：
 
-\[
+$$
 C^*(y,l)=
 \min_{r\in\mathcal R}
 \left\{
 C(r):\tilde P(r(h_l),y)\ge\tau
 \right\}.
-\]
+$$
 
 更推荐将其称为：
 
@@ -231,7 +231,7 @@ C(r):\tilde P(r(h_l),y)\ge\tau
 
 因此建议 readout ladder：
 
-\[
+$$
 \text{Mean-Linear}
 \rightarrow
 \text{Mean-MLP}
@@ -239,7 +239,7 @@ C(r):\tilde P(r(h_l),y)\ge\tau
 \text{Attentive Pooling}
 \rightarrow
 \text{Relational Transformer}.
-\]
+$$
 
 其中第三、第四项的差异具有重要解释意义。详见 [[06_Probe_and_Readout_Design]]。
 
@@ -253,6 +253,6 @@ C(r):\tilde P(r(h_l),y)\ge\tau
 
 统一原则：
 
-\[
+$$
 \boxed{\text{encoded} \neq \text{used} \neq \text{causally necessary} \neq \text{the algorithm}}
-\]
+$$

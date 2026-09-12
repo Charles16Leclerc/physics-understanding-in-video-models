@@ -34,11 +34,11 @@ V-JEPA2 已经不只是一个“视频编码器 benchmark backbone”。现有�
 
 V-JEPA2 原始工作大量下游评测采用：
 
-\[
+$$
 \text{frozen encoder}
 +
 \text{attentive probe/readout}.
-\]
+$$
 
 而不是简单 global mean linear classifier。
 
@@ -58,7 +58,7 @@ V-JEPA2 原始工作大量下游评测采用：
 
 典型：
 
-\[
+$$
 \text{video}
 \rightarrow
 \text{V-JEPA2}
@@ -66,7 +66,7 @@ V-JEPA2 原始工作大量下游评测采用：
 \text{attentive pooler/projector}
 \rightarrow
 \text{LLM}.
-\]
+$$
 
 在受控比较中，V-JEPA2 visual representation 在多个 temporal/video benchmark 上表现很有竞争力。
 
@@ -90,9 +90,9 @@ V-JEPA2 原始工作大量下游评测采用：
 
 V-JEPA2-AC 是 action-conditioned predictor / world-model 方向，更接近真正 causal dynamics：
 
-\[
+$$
 (z_t,a_t,s_t)\rightarrow \hat z_{t+1}.
-\]
+$$
 
 采用更适合 forward dynamics 的 causal / block attention 设计。
 
@@ -164,11 +164,11 @@ PVI 类工作将 V-JEPA2 representation 作为额外 temporal/dynamics feature �
 
 它直接支持：
 
-\[
+$$
 \text{dynamics-centric representation}
 +
 \text{semantic/reasoning model}
-\]
+$$
 
 可能互补。
 

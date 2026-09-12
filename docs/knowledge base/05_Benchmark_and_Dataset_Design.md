@@ -32,25 +32,25 @@ tags: [benchmark, dataset, simulator, rendering]
 
 设物理参数为 \(\theta\)：
 
-\[
+$$
 S_{0:T}=\operatorname{Simulate}(\theta).
-\]
+$$
 
 其中 \(S_t\) 是精确物理状态。
 
 视觉 nuisance 单独记为 \(\nu\)：
 
-\[
+$$
 I_t=R(S_t,\nu).
-\]
+$$
 
 任务标签全部从 simulator state 生成：
 
-\[
+$$
 Y_S=g_S(S),\qquad
 Y_P=g_P(S_{0:T}),\qquad
 Y_J=g_J(S_{0:T},\text{counterfactual relation}).
-\]
+$$
 
 **原则：GT 永远来自 simulator，不从 rendered image 反推。**
 
@@ -58,9 +58,9 @@ Y_J=g_J(S_{0:T},\text{counterfactual relation}).
 
 ### Current
 
-\[
-\boxed{\text{single moving disk/puck + fixed finite barrier}}
-\]
+$$
+\boxed{\text{single moving ball/disk/puck + fixed finite barrier}}
+$$
 
 底层是平面 2D 刚体运动。
 
@@ -85,31 +85,31 @@ Y_J=g_J(S_{0:T},\text{counterfactual relation}).
 - matched counterfactual；
 - causal intervention。
 
-多球/多碰撞会引入额外 binding、long-rollout sensitivity 和复杂事件分支，不是第一篇工作所必需。
+多球/多碰撞会引入额外 binding、long-rollout sensitivity 和复杂事件分支，不是第一篇工作所必需。另外，ball-ball场景具有一个性质：初始状态的微小改变就会导致结果的巨大改变（例如球方向的微小变化就会导致碰撞后球运动方向的巨大改变）。这对于模型做预测是极不友好的。
 
-注意：单次 two-ball collision 本身并不混沌，真正敏感的是多球、多次碰撞、长 rollout。Ball–Ball 只是当前不必要，不是永久排除。
+
 
 ## 4. 解析动力学
 
 令固定 barrier 的支撑线为：
 
-\[
+$$
 n^\top x=c.
-\]
+$$
 
 puck 中心为 \(p\)，速度为 \(v\)，半径 \(r\)。可解析求出 time-to-contact \(\tau\)。
 
 完全弹性固定 barrier：
 
-\[
+$$
 v^+=v^- -2(v^-\cdot n)n.
-\]
+$$
 
 带 restitution \(e\)：
 
-\[
+$$
 v^+=v^--(1+e)(v^-\cdot n)n.
-\]
+$$
 
 有限线段 barrier 还要求 contact point 落在 segment endpoints 之间。有限 geometry 很重要，因为它能让 `will collide?` 变成真正 relational 的任务，而不是“某个坐标过阈值”。
 
@@ -143,8 +143,6 @@ v^+=v^--(1+e)(v^-\cdot n)n.
 - heading；
 - barrier normal / orientation；
 - distance-to-barrier；
-- contact state；
-- object mask / identity metadata。
 
 ### 5.2 Prediction
 
@@ -157,9 +155,9 @@ v^+=v^--(1+e)(v^-\cdot n)n.
 
 #### Control only：future free-flight position
 
-\[
+$$
 x_{t+\Delta t}=x_t+v_t\Delta t
-\]
+$$
 
 本身对 state 是线性的，因此即使 encoder 可线性解码 future position，也不能证明其内部完成了“预测计算”。只能作为 sanity control。
 
@@ -180,15 +178,15 @@ Judgment 的设计核心不是制造荒谬错误，而是让单独的 state marg
 
 正确：
 
-\[
+$$
 v^+_{good}=v^--2(v^-\cdot n)n.
-\]
+$$
 
 为了构造“看起来合理但关系错误”的 bad case，采样另一个合法 barrier orientation \(n'\)：
 
-\[
+$$
 v^+_{bad}=v^--2(v^-\cdot n')n',
-\]
+$$
 
 但画面中实际 barrier 仍保持 \(n\)。
 
@@ -201,17 +199,17 @@ v^+_{bad}=v^--2(v^-\cdot n')n',
 
 目标是让：
 
-\[
+$$
 P(v^+|good)\approx P(v^+|bad),
-\]
+$$
 
-\[
+$$
 P(n|good)\approx P(n|bad),
-\]
+$$
 
-\[
+$$
 P(v^-|good)\approx P(v^-|bad).
-\]
+$$
 
 避免 “bad = 向上运动 / 大速度 / 某种颜色” 这类 trivial shortcut。
 
@@ -221,15 +219,15 @@ P(v^-|good)\approx P(v^-|bad).
 
 用连续/分级误差控制 invalidity，例如：
 
-\[
+$$
 \theta_{bad}=\theta^*+\delta
-\]
+$$
 
 其中：
 
-\[
+$$
 \delta\in\{5^\circ,15^\circ,30^\circ,60^\circ\}
-\]
+$$
 
 或连续采样。
 
@@ -280,6 +278,7 @@ P(v^-|good)\approx P(v^-|bad).
 
 从“physics semantics 与 simulator law 一致”角度，它可能比台球更干净。
 
+![[Pasted image 20260912113310.png]]
 #### Family C：tabletop / lab surface
 
 - 画面必须看到完整桌面边缘，不能让 texture 填满整个 frame；
@@ -291,9 +290,9 @@ P(v^-|good)\approx P(v^-|bad).
 
 与其随机几十种背景贴图，不如保持：
 
-\[
+$$
 \text{same latent physics} + \text{different world semantics}.
-\]
+$$
 
 这样可直接检验：
 
@@ -325,9 +324,9 @@ P(v^-|good)\approx P(v^-|bad).
 
 第二阶段 mechanistic experiment 直接使用 Canonical subset：
 
-\[
+$$
 D_{mech}\subset D_{broad}.
-\]
+$$
 
 避免第二部分突然换成纯白背景造成 domain shift。
 
@@ -358,9 +357,9 @@ D_{mech}\subset D_{broad}.
 
 这会引入：
 
-\[
+$$
 p,v\rightarrow trajectory\rightarrow pocket intersection.
-\]
+$$
 
 但第一版主任务中，若保留 pockets 作为视觉 cue，应保证 trajectory 与 pocket 有足够安全距离，避免引入第二种 interaction affordance。
 
@@ -368,13 +367,15 @@ p,v\rightarrow trajectory\rightarrow pocket intersection.
 
 详见 [[08_Experiment_Plan_and_Evaluation]]，这里列核心项。
 
-### 12.1 Latent-scene split — 必须
+### 12.1 Latent-scene split 
 
 同一个 latent trajectory 的不同 render skin 必须进入同一个 split。
 
 否则 train/test 会通过同一物理轨迹泄漏。
 
-### 12.2 Label / nuisance marginal balance — 必须
+**上面这点有待讨论**
+
+### 12.2 Label / nuisance marginal balance 
 
 检查：
 
@@ -387,7 +388,7 @@ p,v\rightarrow trajectory\rightarrow pocket intersection.
 
 不能单独决定 label。
 
-### 12.3 GT-state → target baseline — 必须
+### 12.3 GT-state → target baseline 
 
 对 simulator 真 state 训练：
 
@@ -396,13 +397,13 @@ p,v\rightarrow trajectory\rightarrow pocket intersection.
 
 Prediction 理想情况：
 
-\[
+$$
 \text{Linear}(s) \ll \text{MLP}(s)\approx ceiling.
-\]
+$$
 
 否则任务可能太简单，无法证明 predictor 做了关系计算。
 
-### 12.4 Judgment 单阶段 shortcut — 必须
+### 12.4 Judgment 单阶段 shortcut 
 
 至少测试：
 
@@ -414,7 +415,7 @@ Prediction 理想情况：
 
 理想上都接近 chance，而 full relation 可接近 ceiling。
 
-### 12.5 Full-GT oracle — 必须
+### 12.5 Full-GT oracle 
 
 确认标签无 bug、任务本身可解。
 
@@ -448,9 +449,10 @@ train probe on skin A，test on held-out skin B/C。
 - 在 Physion 验证 future contact trend；
 - 在某现成 judgment benchmark 验证 VLM late-layer trend；
 - 不强行复制完整 State×Prediction×Judgment 矩阵。
+- 可以只对研究发现的最核心的结果做测试
 
 如果必须在 external benchmark 与第二阶段 causal experiment 二选一，当前优先：
 
-\[
+$$
 \boxed{\text{causal mechanistic experiment}}
-\]
+$$

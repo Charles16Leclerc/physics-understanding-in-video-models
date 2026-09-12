@@ -11,7 +11,7 @@ tags: [risks, failure-modes, claims]
 
 最基本层级：
 
-\[
+$$
 \text{probe decodable}
 \not\Rightarrow
 \text{model uses it}
@@ -19,7 +19,7 @@ tags: [risks, failure-modes, claims]
 \text{it is causally necessary}
 \not\Rightarrow
 \text{it is the model's algorithm}.
-\]
+$$
 
 任何论文写作都必须严格对应证据等级。
 
@@ -58,9 +58,9 @@ tags: [risks, failure-modes, claims]
 
 若：
 
-\[
+$$
 x_{t+\Delta}=x_t+v_t\Delta,
-\]
+$$
 
 且 encoder 线性表示 \(x_t,v_t\)，则 future position 自然线性可读。
 
@@ -172,9 +172,9 @@ V-JEPA 24 层、VLM vision 32 层、LLM 28 层等，raw layer index 不可直接
 
 简单：
 
-\[
+$$
 h'=h+\alpha u
-\]
+$$
 
 可能让 activation 离开真实 data manifold，模型输出变化并不能证明该 variable 在自然 computation 中如此使用。
 
@@ -185,9 +185,9 @@ h'=h+\alpha u
 
 ## 14. Linear probe direction 不一定是 causal variable direction
 
-\[
+$$
 w_{probe}\neq\Delta\mu\neq v_{causal}
-\]
+$$
 
 一般不相等。
 

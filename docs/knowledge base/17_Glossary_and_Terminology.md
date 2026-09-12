@@ -71,9 +71,9 @@ tags: [glossary, terminology]
 
 ## 8. Mean-Linear
 
-\[
+$$
 H\rightarrow\bar h\rightarrow W\bar h+b.
-\]
+$$
 
 Claim：目标可从 **mean-pooled representation** 线性读取。
 
@@ -117,9 +117,9 @@ Claim：目标可从 **mean-pooled representation** 线性读取。
 
 统一纪律：
 
-\[
+$$
 \text{decodable}\neq\text{used}.
-\]
+$$
 
 ## 15. Causal Use / Causal Contribution
 
@@ -131,9 +131,9 @@ Claim：目标可从 **mean-pooled representation** 线性读取。
 
 把 base example 某 candidate subspace 的 activation 换成 source example：
 
-\[
+$$
 h_A'=(I-P)h_A+Ph_B.
-\]
+$$
 
 用于对齐高层 causal variable 的 counterfactual edit。
 
@@ -167,9 +167,9 @@ Violation of Expectation。用模型 prediction error / surprise 区分 possible
 
 注意：
 
-\[
+$$
 \text{surprise}\neq\text{physical invalidity}.
-\]
+$$
 
 ## 22. Claim 词汇等级
 

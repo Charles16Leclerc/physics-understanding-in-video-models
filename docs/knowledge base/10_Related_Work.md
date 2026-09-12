@@ -61,13 +61,13 @@ tags: [related-work, literature]
 
 因此它是最直接的 representation-level 前驱，但本项目希望进一步研究：
 
-\[
+$$
 \text{state representation}
 \rightarrow
 \text{future computation}
 \quad\text{以及}\quad
 \text{judgment/reasoning}.
-\]
+$$
 
 ---
 
@@ -106,7 +106,7 @@ tags: [related-work, literature]
 
 并形成当前四级 readout：
 
-\[
+$$
 \text{Mean-Linear}
 \rightarrow
 \text{Mean-MLP}
@@ -114,7 +114,7 @@ tags: [related-work, literature]
 \text{Attentive Pooling}
 \rightarrow
 \text{Relational Transformer}.
-\]
+$$
 
 ### 我们怎样扩展它
 
@@ -226,7 +226,7 @@ tags: [related-work, literature]
 
 我们的 Ball/Puck–Barrier 同样有明确解析计算图：
 
-\[
+$$
 (p,v,n,c)
 \rightarrow
 \tau
@@ -234,7 +234,7 @@ tags: [related-work, literature]
 v^+
 \rightarrow
 output.
-\]
+$$
 
 可以借鉴其思想：
 
@@ -315,9 +315,9 @@ DAS 不要求高层变量恰好对齐某个 neuron 或 probe weight，而是学�
 
 核心思想：
 
-\[
+$$
 Q\xrightarrow{cross-attn}H_{patch}
-\]
+$$
 
 用少量 learned queries 直接选择有用 patch token，而不是先 mean pool。
 
@@ -411,9 +411,9 @@ Q\xrightarrow{cross-attn}H_{patch}
 
 后来认识到：
 
-\[
+$$
 \text{predictability}\neq\text{physical validity}.
-\]
+$$
 
 模型可以稳定预测一个持续漂浮的球，但该过程仍违反重力。
 
@@ -442,9 +442,9 @@ Q\xrightarrow{cross-attn}H_{patch}
 
 Physion 经典地把模型分成：
 
-\[
+$$
 X_{\le t}\xrightarrow{E}p\xrightarrow{D}q\xrightarrow{C}P(contact).
-\]
+$$
 
 其中 standardized linear/SVM readout 是 task adaptor，不代表理论上认为 encoder 必须直接“存未来接触答案”。
 
@@ -593,21 +593,21 @@ V-JEPA2 作为视频 representation backbone 进行下游 task-specific adaptati
 
 但截至当前调研，没有看到一项工作同时：
 
-\[
+$$
 \boxed{
 \text{V-JEPA encoder/predictor}
 \leftrightarrow
 \text{VLM vision/LLM}
 }
-\]
+$$
 
 并沿：
 
-\[
+$$
 \boxed{
 \text{State / Prediction / Judgment}
 }
-\]
+$$
 
 系统研究：
 

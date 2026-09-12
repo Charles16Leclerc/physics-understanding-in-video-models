@@ -1,0 +1,222 @@
+{
+  "main": {
+    "id": "767fe075769ab9f6",
+    "type": "split",
+    "children": [
+      {
+        "id": "39b4fc5ca0f06b9b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ce651e96ec09529f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "07_Mechanistic_Interpretability_and_Causal_Intervention"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2310e596f740f0d2",
+    "type": "split",
+    "children": [
+      {
+        "id": "8da781338188dafb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1efe13b9196a0f33",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "2cff0e0cba5e0eda",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "3ccf17ad03621e4f",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 224.5
+  },
+  "right": {
+    "id": "af04dc96e67b370e",
+    "type": "split",
+    "children": [
+      {
+        "id": "93262a91b09c871f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1c46470f17c38cd4",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "3e00e9231dff534a",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "出链"
+            }
+          },
+          {
+            "id": "095042eb2bd6f246",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "2023ca781f3b10ed",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "382d70d1a89eeff3",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "1efe13b9196a0f33",
+  "lastOpenFiles": [
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention,md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention,md.61acd27d-bc8e-4f15-b7d7-5c0a49495542.chatgptdownload",
+    "docs/knowledge base/05_Benchmark_and_Dataset_Design.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md.1d1848d1-5bff-424d-83f7-14ea89f54314.chatgptdownload",
+    "docs/knowledge base/08_Experiment_Plan_and_Evaluation.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.4e5f4bad-c47d-436c-aff4-3eb58c38941e.chatgptdownload",
+    "docs/knowledge base/19_Proposal_Distilled.md",
+    "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md.ee96c225-14d2-4d21-b12c-d302fec88d0c.chatgptdownload",
+    "docs/knowledge base/17_Glossary_and_Terminology.md",
+    "docs/knowledge base/18_Knowledge_Base_Maintenance.md",
+    "docs/knowledge base/16_Experiment_Record_Template.md",
+    "docs/knowledge base/14_Results_Log_Template.md",
+    "docs/knowledge base/13_Open_Questions_and_TODO.md",
+    "docs/knowledge base/12_Risks_Failure_Modes_and_Claim_Discipline.md",
+    "docs/knowledge base/11_Decision_Log_and_Idea_Evolution.md",
+    "docs/knowledge base/10_Related_Work.md",
+    "docs/knowledge base/09_Engineering_Compute_and_Code_Architecture.md",
+    "docs/knowledge base/06_Probe_and_Readout_Design.md",
+    "Pasted image 20260912113310.png",
+    "docs/knowledge base/01_Project_Overview.md",
+    "docs/knowledge base/04_Model_Scope_and_Architectures.md",
+    "docs/knowledge base/03_Theory_State_Prediction_Judgment.md",
+    "docs/knowledge base/02_Motivation_and_Research_Questions.md",
+    "docs/knowledge base/00_HOME.md"
+  ]
+}

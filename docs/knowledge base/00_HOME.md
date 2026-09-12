@@ -13,7 +13,7 @@ tags: [home, navigation]
 
 1. [[01_Project_Overview|项目概述]]：整项研究当前版本的完整但相对精炼的说明。
 2. [[02_Motivation_and_Research_Questions|研究动机与科学问题]]：为什么“模型懂不懂物理”需要被拆开分析，我们真正要回答什么。
-3. [[03_Theory_State_Prediction_Judgment|理论框架：State、Prediction 与 Judgment]]：architecture-conditioned 的核心理论，不再假设统一三级因果链。
+3. [[03_Theory_State_Prediction_Judgment|理论框架：State、Prediction 与 Judgment]]：architecture-conditioned 的核心理论。
 4. [[04_Model_Scope_and_Architectures|研究对象、模型与架构]]：V-JEPA encoder/predictor、VLM vision tower/projector/LLM、模型选择与规模。
 
 ## 二、实验设计
@@ -50,9 +50,9 @@ tags: [home, navigation]
 
 早期标题使用 `From State to Prediction to Judgment`，容易暗示一个普适的三级顺序链：
 
-\[
+$$
 \text{State}\rightarrow\text{Prediction}\rightarrow\text{Judgment}.
-\]
+$$
 
 当前理论已经明确修正：
 

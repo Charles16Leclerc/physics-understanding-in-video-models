@@ -60,13 +60,13 @@ tags: [decision-log, history]
 
 “物理知识”不是一个单一静态 feature。项目逐步改为：
 
-\[
+$$
 \text{Representation}
 \rightarrow
 \text{Prediction}
 \rightarrow
 \text{Judgment/Reasoning}
-\]
+$$
 
 并进一步修正为 architecture-conditioned 的 State / Prediction / Judgment 三功能框架。
 
@@ -119,9 +119,9 @@ tags: [decision-log, history]
 
 Physion 本身明确区分：
 
-\[
+$$
 E\rightarrow D\rightarrow C.
-\]
+$$
 
 标准 linear/SVM readout 只是统一 task adaptor，不是理论宣言。
 
@@ -189,9 +189,9 @@ E\rightarrow D\rightarrow C.
 
 曾希望论文直接预测：
 
-\[
+$$
 \text{State}\rightarrow\text{Prediction}\rightarrow\text{Judgment}
-\]
+$$
 
 在所有模型中都是逐层递进。
 
@@ -199,9 +199,9 @@ E\rightarrow D\rightarrow C.
 
 VLM 根本没有明确 latent predictor，而且 judgment 可以直接由：
 
-\[
+$$
 \text{visual evidence}+\text{LLM prior}
-\]
+$$
 
 完成，不必先显式生成 future state。
 
@@ -209,9 +209,9 @@ VLM 根本没有明确 latent predictor，而且 judgment 可以直接由：
 
 #### V-JEPA
 
-\[
+$$
 \text{State}\rightarrow\text{Prediction}
-\]
+$$
 
 是强 architecture-conditioned hypothesis；Judgment 是 open question。
 
@@ -219,14 +219,14 @@ VLM 根本没有明确 latent predictor，而且 judgment 可以直接由：
 
 更合理：
 
-\[
+$$
 \text{Visual State}
 \rightarrow
 \begin{cases}
 \text{Prediction}\\
 \text{Judgment}
 \end{cases}
-\]
+$$
 
 二者可平行或部分共享。
 
@@ -256,15 +256,15 @@ VLM 根本没有明确 latent predictor，而且 judgment 可以直接由：
 
 predictive objective 可能把：
 
-\[
+$$
 f(s)
-\]
+$$
 
 通过非线性 feature lifting 变成：
 
-\[
+$$
 f(s)\approx w^\top h.
-\]
+$$
 
 这可能意味着 future-relevant relation 被提前 explicit，而不是错误。
 
@@ -305,7 +305,7 @@ f(s)\approx w^\top h.
 
 四类 controlled readout：
 
-\[
+$$
 \text{Mean-Linear}
 \rightarrow
 \text{Mean-MLP}
@@ -313,7 +313,7 @@ f(s)\approx w^\top h.
 \text{Attentive Pooling}
 \rightarrow
 \text{Relational Transformer}.
-\]
+$$
 
 分别区分：
 
@@ -534,9 +534,9 @@ Mechanistic subset 是 broad benchmark 的子分布，而不是完全不同 doma
 
 原因：
 
-\[
+$$
 \text{Video ViT}\rightarrow\text{Patch Merger}\rightarrow\text{LLM}
-\]
+$$
 
 结构较清楚。
 

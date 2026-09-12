@@ -18,19 +18,18 @@ tags: [overview, proposal]
 - 对当前物理状态进行表征；
 - 预测未来物理状态或事件；
 - 判断已经观察到的事件是否符合物理规律；
-- 可选地进一步进行反事实或因果推理。
 
 本项目将 “physical understanding” 操作化为三个主要目标：
 
-\[
+$$
 \boxed{\text{Physical State}},\qquad
 \boxed{\text{Physical Prediction}},\qquad
 \boxed{\text{Physical Judgment}}.
-\]
+$$
 
-研究目标不是先假定一条统一的物理推理流水线，而是分析：
+研究目标是分析：
 
-> **不同训练目标和架构的模型，分别怎样组织 State、Prediction 与 Judgment？**
+> **不同训练目标和架构的模型，分别怎样组织 State、Prediction 与 Judgment进行物理理解和推理？**
 
 ## 2. 核心模型对比
 
@@ -38,15 +37,15 @@ tags: [overview, proposal]
 
 V-JEPA 风格系统显式具有：
 
-\[
+$$
 X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
-\]
+$$
 
 其中 encoder 与 predictor 通过 predictive latent objective 联合训练，因此存在较强的结构先验：
 
-\[
-\text{state representation}\rightarrow\text{future representation}.
-\]
+$$
+\text{current state}\rightarrow\text{future prediction}.
+$$
 
 但 **physical judgment 并不是原生训练目标**。因此没有理由提前假设：
 
@@ -58,7 +57,7 @@ X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
 
 以 Qwen2.5-VL 为例，其结构大致为：
 
-\[
+$$
 \text{video}
 \rightarrow
 \text{vision encoder}
@@ -68,18 +67,18 @@ X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
 \text{LLM}
 \rightarrow
 \text{answer}.
-\]
+$$
 
 它没有显式的 latent future predictor。对 VLM 而言，Prediction 与 Judgment 都可能只是 general VQA / multimodal reasoning 下的两种子任务，因此更合理的先验是：
 
-\[
+$$
 \text{visual state}
 \rightarrow
 \begin{cases}
 \text{prediction}\\
 \text{judgment}
 \end{cases}
-\]
+$$
 
 而不是统一的 `State → Prediction → Judgment`。
 
@@ -100,7 +99,7 @@ X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
 
 研究空间为：
 
-\[
+$$
 \text{model family}
 \times
 \text{functional target}
@@ -108,17 +107,17 @@ X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
 \text{network location}
 \times
 \text{readout class}.
-\]
+$$
 
-核心问题不是“哪层最好”，而是：
+核心问题是：
 
-> **一个物理量在什么时候变得显式？为了从当前 representation 中恢复它，还需要多少 aggregation 或额外 computation？**
+> **一个物理变量在什么时候变得显式？为了从当前 representation 中恢复它，还需要多少 aggregation 或额外 computation？**
 
 ### Experiment 2：Mechanistic Microscope
 
-第二部分使用与 Experiment 1 相同数据生成分布中的 canonical、低 nuisance 子集，重点分析一个极简 disk/puck–barrier 系统。其 ground-truth computation graph 已知：
+第二部分使用与 Experiment 1 相同数据生成分布中的 canonical、低 nuisance 子集。其 ground-truth computation graph 已知：
 
-\[
+$$
 (p,v,n,c)
 \rightarrow
 \tau_{\text{collision}}
@@ -126,7 +125,7 @@ X \xrightarrow{E} Z \xrightarrow{P} \hat Z.
 v^+
 \rightarrow
 \text{prediction/judgment}.
-\]
+$$
 
 对这些 intermediate 做：
 
@@ -193,9 +192,9 @@ v^+
 - 能力足够强；
 - 结构相对干净：
 
-\[
+$$
 \text{video ViT}\rightarrow\text{patch merger}\rightarrow\text{Qwen2.5 LLM}.
-\]
+$$
 
 若后续需要架构 robustness，可增加 **LLaVA-OneVision-7B**。
 
@@ -203,11 +202,10 @@ v^+
 
 当前首选：
 
-\[
-\boxed{\text{single moving disk/puck + fixed finite barrier}}
-\]
+$$
+\boxed{\text{single moving ball/disk/puck + fixed finite barrier}}
+$$
 
-而不是多球动力学。
 
 原因：
 
@@ -217,7 +215,8 @@ v^+
 - GT state/intermediate 完整；
 - matched counterfactual invalid transition 容易构造；
 - 非常适合因果 intervention；
-- 避免 long-horizon multi-collision 的敏感性。
+- 避免 long-horizon multi-collision 的敏感性；
+- 初状态的微小差异不会导致结果的巨大差异，对模型预测友好。
 
 ## 8. 渲染哲学
 

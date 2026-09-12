@@ -23,23 +23,23 @@ tags: [proposal, distilled]
 
 ### V-JEPA
 
-\[
+$$
 X\xrightarrow{Encoder}Z\xrightarrow{Predictor}\hat Z
-\]
+$$
 
 其 architecture/pretraining 天然提供：
 
-\[
+$$
 \text{State}\rightarrow\text{Prediction}
-\]
+$$
 
 的结构先验；Judgment 不是原生任务。
 
 ### VLM
 
-\[
+$$
 \text{Video ViT}\rightarrow\text{LLM}\rightarrow\text{answer}
-\]
+$$
 
 没有专门 future predictor，因此 Prediction 与 Judgment 很可能只是从 shared visual state 出发的两个并列 reasoning task。
 
@@ -77,21 +77,21 @@ X\xrightarrow{Encoder}Z\xrightarrow{Predictor}\hat Z
 
 统一 benchmark 中使用极简：
 
-\[
+$$
 \text{moving puck}+\text{fixed finite barrier}
-\]
+$$
 
 解析计算：
 
-\[
+$$
 (p,v,n,c)\rightarrow\tau\rightarrow v^+.
-\]
+$$
 
 找到 velocity / barrier orientation / TTC representation 后做：
 
-\[
+$$
 h_A'=(I-P)h_A+Ph_B
-\]
+$$
 
 的 interchange intervention，测试：
 
@@ -115,9 +115,9 @@ h_A'=(I-P)h_A+Ph_B
 
 第一版只做：
 
-\[
+$$
 \text{single puck/disk + fixed barrier}
-\]
+$$
 
 解析模拟，不用 physics engine。
 

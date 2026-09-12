@@ -11,11 +11,11 @@ tags: [probe, readout, pooling, attention, layers]
 
 视频 ViT 输入经过 tubelet/patch embedding 后，每个 token 初始对应一个时空块 \((t,x,y)\)。
 
-但进入 global self-attention 后：
+但进入 global self-attention 后：·
 
-\[
+$$
 h_i' = h_i + \sum_j \alpha_{ij}W_Vh_j.
-\]
+$$
 
 因此经过一层后，第 \(i\) 个 token 理论上已经可以从全视频其他 token 获取信息。
 
@@ -37,9 +37,9 @@ Transformer 对所有 token 共享 \(W_Q,W_K,W_V,W_{MLP}\)，因此不同位置�
 
 可以用一个概念方向的直觉例子理解：如果某个 direction \(w_v\) 表示“向右运动”，球在左上或右下时都有可能满足：
 
-\[
+$$
 w_v^\top h_i>0.
-\]
+$$
 
 现实中 representation 是 distributed / superposed，不是一维对应一个概念，但共享表征空间使 pooling、linear probing、token similarity 在数学上有意义。
 
@@ -47,22 +47,22 @@ w_v^\top h_i>0.
 
 设：
 
-\[
+$$
 H=[h_1,\ldots,h_N],\quad h_i\in\mathbb R^D.
-\]
+$$
 
 mean pooling：
 
-\[
+$$
 \bar h=\frac1N\sum_i h_i.
-\]
+$$
 
 linear probe：
 
-\[
+$$
 \hat y=w^\top\bar h+b
 =\frac1N\sum_i w^\top h_i+b.
-\]
+$$
 
 这说明：
 
@@ -72,15 +72,15 @@ linear probe：
 
 若只有 \(k\) 个 token 真正含目标物体运动信号：
 
-\[
+$$
 w^\top h_i=s
-\]
+$$
 
 而其余 token 近似 0，则：
 
-\[
+$$
 w^\top\bar h\approx \frac{k}{N}s.
-\]
+$$
 
 信号会被稀释。
 
@@ -113,15 +113,15 @@ w^\top\bar h\approx \frac{k}{N}s.
 
 如果：
 
-\[
+$$
 H\rightarrow \bar h
-\]
+$$
 
 已经丢失信息，那么再强的：
 
-\[
+$$
 f_{MLP}(\bar h)
-\]
+$$
 
 也无法恢复。
 
@@ -141,7 +141,7 @@ f_{MLP}(\bar h)
 | Attentive Pooling | full \(H\) | learnable token selection / aggregation | 信息是否在局部 token 中，只是 mean pooling 抹掉 |
 | Relational Transformer | full \(H\) | token-token interaction + aggregation | 是否仍需要额外 relational computation |
 
-这四级把两种困难拆开：
+后两种方法的分别把两种困难拆开：
 
 ### Aggregation difficulty
 
@@ -149,16 +149,16 @@ f_{MLP}(\bar h)
 
 ### Computational difficulty
 
-找到 token 后仍需要比较多个 state/token 之间的关系。
+需要比较多个 state/token 之间的关系。
 
 ## 7. Attentive Pooling 的建议实现
 
 当前更倾向 **learned query cross-attention**：
 
-\[
+$$
 Q\in\mathbb R^{m\times d_q},\qquad
 Z=\operatorname{CrossAttn}(Q,H).
-\]
+$$
 
 其中：
 
@@ -183,15 +183,15 @@ Z=\operatorname{CrossAttn}(Q,H).
 
 在 full tokens 上先加一层小 self-attention：
 
-\[
+$$
 H'=\operatorname{TransformerBlock}(H)
-\]
+$$
 
 再用 learned query cross-attention：
 
-\[
+$$
 z=\operatorname{CrossAttn}(q,H').
-\]
+$$
 
 这类 probe 允许：
 
@@ -212,9 +212,9 @@ z=\operatorname{CrossAttn}(q,H').
 
 主实验使用固定的一层 hidden MLP，例如：
 
-\[
+$$
 D\rightarrow512\rightarrow output.
-\]
+$$
 
 中间可用：
 
@@ -279,9 +279,9 @@ D\rightarrow512\rightarrow output.
 
 例如 24 层 encoder：
 
-\[
+$$
 \{0,4,8,12,16,20,24\}.
-\]
+$$
 
 40 层：选约 6–7 个归一化深度。
 
@@ -291,9 +291,9 @@ V-JEPA predictor 只有 12 层，可以考虑全部跑。
 
 如果 coarse grid 发现明显突变，例如：
 
-\[
+$$
 L_8=55\%,\qquad L_{12}=91\%,
-\]
+$$
 
 再补 \(L_9,L_{10},L_{11}\)。
 
@@ -313,10 +313,10 @@ State probing 时，global mean 失败可能是：
 
 由于 simulator 有 GT mask，可定义：
 
-\[
+$$
 h_l^{object}=
 \operatorname{Pool}_{i\in mask_{object}}H_{l,i}.
-\]
+$$
 
 这样回答：
 

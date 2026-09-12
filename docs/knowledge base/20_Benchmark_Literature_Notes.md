@@ -70,9 +70,9 @@ IntPhys 的经典思路是：
 
 原生 VoE 可写成：
 
-\[
+$$
 S(V)=D(\hat z,z)
-\]
+$$
 
 或其他 prediction/surprise score。
 
@@ -85,9 +85,9 @@ JEPA 本身就是 predictive representation learning，所以似乎天然可以�
 
 ### 后来的关键 caveat
 
-\[
+$$
 \boxed{\text{predictability}\neq\text{physical validity}}
-\]
+$$
 
 例如：
 
@@ -225,9 +225,9 @@ IntPhys2 恰好：
 
 这促成当前：
 
-\[
+$$
 \text{Mean}\rightarrow\text{Attentive}\rightarrow\text{Relational}
-\]
+$$
 
 的分解。
 
@@ -247,7 +247,7 @@ IntPhys2 恰好：
 
 大致是：
 
-\[
+$$
 \text{video}
 \rightarrow
 \text{object/spatial reconstruction}
@@ -255,7 +255,7 @@ IntPhys2 恰好：
 \text{state consistency}
 \rightarrow
 \text{physics score}.
-\]
+$$
 
 ### 对我们的重要启发
 
@@ -321,7 +321,7 @@ Physion 覆盖多个常见物理场景，例如：
 
 其理论框架本身区分：
 
-\[
+$$
 X_{\le t}
 \xrightarrow{E}
 p
@@ -329,7 +329,7 @@ p
 q
 \xrightarrow{C}
 P(contact).
-\]
+$$
 
 ### 对项目的关键理论纠正
 
@@ -427,8 +427,8 @@ Physion 的真实意图只是：
 
 这直接导向当前自建：
 
-\[
+$$
 \boxed{\text{single puck + finite barrier}}
-\]
+$$
 
 的统一 diagnostic benchmark。

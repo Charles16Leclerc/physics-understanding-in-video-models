@@ -12,15 +12,16 @@ tags: [engineering, compute, code, activations]
 本项目算力主要消耗在：
 
 - frozen foundation model forward；
-- 中间 activation 提取；
-- token-aware probe；
-- causal intervention 的重复 forward。
 
 而不是：
 
 - probe 本身的训练；
 - simulator；
 - renderer。
+
+另外，存储资源层面：
+
+- 大量中间层 token 的存储也很容易触碰存储上限。
 
 因此工程优化核心是：
 
@@ -102,9 +103,9 @@ State / Prediction / Judgment samples
 
 可以高分辨率 render 后 downsample，例如：
 
-\[
+$$
 1024^2\rightarrow256^2.
-\]
+$$
 
 避免斜 barrier / 圆边出现明显 aliasing artifact。
 
@@ -192,27 +193,27 @@ optimizer.step()
 
 示例：
 
-\[
+$$
 N=1568,\quad D=1024.
-\]
+$$
 
 fp16 单 clip 单层 full tokens：
 
-\[
+$$
 1568\times1024\times2\text{ bytes}\approx3.2\text{ MB}.
-\]
+$$
 
 10k clips × 8 layers 约：
 
-\[
+$$
 256\text{ GB}.
-\]
+$$
 
 而 pooled feature：
 
-\[
+$$
 1024\times2\text{ bytes}\approx2\text{ KB/clip/layer}.
-\]
+$$
 
 几乎可忽略。
 
@@ -235,9 +236,9 @@ fp16 单 clip 单层 full tokens：
 
 将样本缩到约：
 
-\[
+$$
 1k\sim3k
-\]
+$$
 
 再保存 full activations / attention / token tensors。
 
@@ -245,15 +246,15 @@ fp16 单 clip 单层 full tokens：
 
 冻结 backbone 后，同一个 batch 可以一次拿：
 
-\[
+$$
 H_4,H_8,H_{12},H_{16},\ldots
-\]
+$$
 
 并同时训练多个独立 cheap probe：
 
-\[
+$$
 P_4(H_4),P_8(H_8),\ldots
-\]
+$$
 
 full-token attentive probe 受显存限制，可每次只训练少数层。
 

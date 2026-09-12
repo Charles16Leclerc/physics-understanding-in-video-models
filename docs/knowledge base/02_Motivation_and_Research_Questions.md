@@ -83,6 +83,24 @@ tags: [motivation, research-questions]
 - 有大型 LLM backbone，带来强 world knowledge 与逻辑推理能力；
 - Prediction 与 Judgment 都可视作 general video understanding / VQA 下的 task-conditioned readout。
 
+总得来说，根据两类模型的架构和训练机制理解，我们的理论预测是：
+
+**VJEPA：**
+$$
+\text{current state}\rightarrow\text{future prediction}.
+$$
+而 judgement 不清楚。
+
+**VLM：**
+
+$$
+\text{visual state}
+\rightarrow
+\begin{cases}
+\text{prediction}\\
+\text{judgment}
+\end{cases}
+$$
 因此：
 
 > **V-JEPA × VLM 与 State × Prediction × Judgment 不是两个独立维度机械相乘，而是同一个 architecture-conditioned scientific design。**
@@ -93,7 +111,6 @@ tags: [motivation, research-questions]
 
 - V-JEPA encoder 是否比 VLM vision tower 更早、更低 readout cost 地表征速度、方向、几何等量？
 - 不同 state variable 是否具有不同 layerwise emergence？
-- 这些 representation 是 globalized、localized，还是 object-centric？
 
 ### RQ2：V-JEPA predictor 是否把 state 中隐式的未来关系“编译”为更显式的 future representation？
 
@@ -101,15 +118,15 @@ tags: [motivation, research-questions]
 
 若 ground-truth state 上：
 
-\[
+$$
 \text{Linear}(s) \ll \text{MLP}(s)
-\]
+$$
 
 但模型中：
 
-\[
+$$
 \text{Linear}(h_E) \ll \text{Linear}(h_P),
-\]
+$$
 
 则可支持：predictor 将原本需要额外 nonlinear computation 的关系转化为更 explicit 的 representation。
 
@@ -128,9 +145,9 @@ tags: [motivation, research-questions]
 
 也可能得到反结论：
 
-\[
+$$
 S_{\text{wall-validity}} \perp S_{\text{other-validity}}
-\]
+$$
 
 即所谓 “physical plausibility” 并不是统一概念，而是一组 task-specific consistency mechanism。
 
@@ -138,9 +155,9 @@ S_{\text{wall-validity}} \perp S_{\text{other-validity}}
 
 区分：
 
-\[
+$$
 \text{decodable} \neq \text{causally used}.
-\]
+$$
 
 通过 activation patching / interchange intervention 检验 state variable 与 downstream prediction/judgment 的因果关系。
 

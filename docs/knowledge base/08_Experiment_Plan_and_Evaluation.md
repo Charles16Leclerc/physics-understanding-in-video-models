@@ -11,9 +11,9 @@ tags: [experiment-plan, evaluation]
 
 项目不应一开始就把：
 
-\[
+$$
 \text{模型}\times\text{任务}\times\text{层}\times\text{probe}\times\text{数据}
-\]
+$$
 
 全部铺满。
 
@@ -59,15 +59,15 @@ tags: [experiment-plan, evaluation]
 
 希望出现：
 
-\[
+$$
 \text{GT-State Linear} \ll \text{GT-State MLP/Oracle}.
-\]
+$$
 
 例如：
 
-\[
+$$
 60\%\quad vs\quad 99\%.
-\]
+$$
 
 若 Linear(state) 已经 99%，则这个 target 不适合用来证明 “predictor 执行了额外关系计算”。
 
@@ -158,15 +158,15 @@ Judgment target：
 
 目标是区分：
 
-\[
+$$
 \text{pooling/aggregation limitation}
-\]
+$$
 
 与：
 
-\[
+$$
 \text{need for additional relational computation}.
-\]
+$$
 
 ### 示例解释
 
@@ -288,11 +288,11 @@ probe merger output，观察：
 
 若中层 state / predictor feature 比 final representation 更有 physics signal：
 
-\[
+$$
 [h_{state-rich},h_{prediction-rich},h_{final}]
 \rightarrow
 \text{tiny fusion head}.
-\]
+$$
 
 ### Selective tuning
 
@@ -327,18 +327,18 @@ probe merger output，观察：
 
 可考虑：
 
-\[
+$$
 \tilde P=
 \frac{P-P_{chance}}
 {P_{oracle}-P_{chance}}.
-\]
+$$
 
 再定义 readout threshold：
 
-\[
+$$
 C^*(y,l)=
 \min\{C(r):\tilde P\ge\tau\}.
-\]
+$$
 
 ### Tentative
 
