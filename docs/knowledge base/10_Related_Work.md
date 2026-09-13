@@ -25,7 +25,7 @@ tags: [related-work, literature]
 - representation geometry / subspace 分析；
 - patch-level / attention 分析；
 - attention ablation；
-- causal steering。
+- causal steering（仅对单一物理量steer后再probe，并非steer某物理量后看预测/判断变化）。
 
 核心结果之一是所谓 **Physics Emergence Zone (PEZ)**：部分物理量在网络约三分之一深度附近开始明显线性可读。
 
@@ -35,7 +35,9 @@ tags: [related-work, literature]
 - direction 更晚稳定；
 - 方向并不是一个简单一维变量，而是高维、近似圆形/分布式的 population code；
 - 不同 physical task 的子空间未必共享一个紧凑“physics state”，甚至可接近正交；
-- 某些 local spatial/temporal heads 对物理表示有明显 causal contribution。
+- 某些 local spatial/temporal heads 对物理表示有明显 causal contribution；
+- PEZ对attention ablation基本保持（可能是IntPhys shortcut原因？）；
+- 以表征的patch/时空分布的视角来看，在PEZ区域，表征从零散分布在部分patch中变为分布在全部patch中，使得单一patch也突然能读出表征了。
 
 ### 对本项目的方法学贡献
 
