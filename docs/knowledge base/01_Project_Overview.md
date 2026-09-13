@@ -258,13 +258,13 @@ $$
 这把两个常被混淆的问题拆开：
 
 $$
-\boxed{\text{Aggregation complexity}}
+\boxed{\text{Aggregation}}
 \qquad\text{vs}\qquad
-\boxed{\text{Computational complexity}}.
+\boxed{\text{Computation}}.
 $$
 
 - Aggregation 对应 mean pooled vs attentive 的分别；
-- Computational 对应 linear vs MLP 、attentive pooling vs transformer 的分别。
+- Computation 对应 linear vs MLP 、attentive pooling vs transformer 的分别。
 
 Layer sweep 采用：cheap pooled probe 全层跑；token-aware probe 使用预先规定的 normalized depth grid；若出现明显分数 layerwise transition，再局部 refinement。
 
