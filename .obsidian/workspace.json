@@ -11,14 +11,12 @@
             "id": "ce651e96ec09529f",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "image",
               "state": {
-                "file": "docs/knowledge base/01_Project_Overview.md",
-                "mode": "source",
-                "source": false
+                "file": "Pasted image 20260912113310.png"
               },
-              "icon": "lucide-file",
-              "title": "01_Project_Overview"
+              "icon": "lucide-image",
+              "title": "Pasted image 20260912113310"
             }
           }
         ]
@@ -83,7 +81,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 247
+    "width": 416
   },
   "right": {
     "id": "af04dc96e67b370e",
@@ -190,8 +188,8 @@
   },
   "active": "ce651e96ec09529f",
   "lastOpenFiles": [
-    "docs/knowledge base/02_Motivation_and_Research_Questions.md",
     "docs/knowledge base/01_Project_Overview.md",
+    "docs/knowledge base/02_Motivation_and_Research_Questions.md",
     "docs/knowledge base/03_Theory_State_Prediction_Judgment.md",
     "docs/knowledge base/00_HOME.md",
     "docs/knowledge base/19_Benchmark_Literature_Notes.md",
