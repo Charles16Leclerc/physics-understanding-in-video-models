@@ -122,8 +122,8 @@ logs/weekly/YYYY-WXX.md
 写在：
 
 - [[10_Related_Work]]；
-- [[20_Benchmark_Literature_Notes]]；
-- [[21_VJEPA_Downstream_Survey]]。
+- [[19_Benchmark_Literature_Notes]]；
+- [[20_VJEPA_Downstream_Survey]]。
 
 ### 未解决问题
 

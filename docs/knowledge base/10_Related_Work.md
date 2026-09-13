@@ -501,7 +501,7 @@ $$
 - “physics understanding”本来就存在多个 operationalization；
 - 需要把 representation、prediction、judgment 分开。
 
-详见 [[20_Benchmark_Literature_Notes]]。
+详见 [[19_Benchmark_Literature_Notes]]。
 
 ---
 

@@ -236,7 +236,7 @@ $$
 
 ## 9. 预期贡献
 
-1. **Architecture-aware functional decomposition**：把 physical understanding 拆成 State、Prediction、Judgment，但不强行假设统一顺序链。
+1. **Architecture-aware functional decomposition**：把 physical understanding 拆成 State、Prediction、Judgment。
 2. **Computational accessibility map**：研究不同层、不同模块、不同 readout class 下物理量的显式程度。
 3. **Architecture-specific organization**：比较 V-JEPA encoder/predictor 与 VLM vision/LLM 的内部功能组织。
 4. **Causal mechanistic validation**：验证被 probe 出来的物理变量是否真正被下游计算使用。

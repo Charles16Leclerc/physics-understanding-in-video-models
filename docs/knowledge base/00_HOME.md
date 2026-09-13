@@ -38,9 +38,8 @@ tags: [home, navigation]
 16. [[16_Experiment_Record_Template|实验记录模板]]
 17. [[17_Glossary_and_Terminology|术语表]]
 18. [[18_Knowledge_Base_Maintenance|知识库维护规范]]
-19. [[19_Proposal_Distilled|蒸馏版 Proposal]]
-20. [[20_Benchmark_Literature_Notes|Benchmark 文献笔记]]
-21. [[21_VJEPA_Downstream_Survey|V-JEPA 下游工作调研]]
+19. [[19_Benchmark_Literature_Notes|Benchmark 文献笔记]]
+20. [[20_VJEPA_Downstream_Survey|V-JEPA 下游工作调研]]
 
 ## 当前工作标题
 

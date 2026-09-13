@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/knowledge base/02_Motivation_and_Research_Questions.md",
+                "file": "docs/knowledge base/01_Project_Overview.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "02_Motivation_and_Research_Questions"
+              "title": "01_Project_Overview"
             }
           }
         ]
@@ -190,12 +190,14 @@
   },
   "active": "ce651e96ec09529f",
   "lastOpenFiles": [
-    "docs/knowledge base/00_HOME.md",
-    "docs/knowledge base/03_Theory_State_Prediction_Judgment.md",
-    "docs/knowledge base/01_Project_Overview.md",
     "docs/knowledge base/02_Motivation_and_Research_Questions.md",
-    "docs/knowledge base/10_Related_Work.md",
+    "docs/knowledge base/01_Project_Overview.md",
+    "docs/knowledge base/03_Theory_State_Prediction_Judgment.md",
+    "docs/knowledge base/00_HOME.md",
+    "docs/knowledge base/19_Benchmark_Literature_Notes.md",
+    "docs/knowledge base/20_VJEPA_Downstream_Survey.md",
     "docs/knowledge base/19_Proposal_Distilled.md",
+    "docs/knowledge base/10_Related_Work.md",
     "docs/knowledge base/13_Open_Questions_and_TODO.md",
     "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
     "docs/knowledge base/07_Mechanistic_Interpretability_and_Causal_Intervention.md",
