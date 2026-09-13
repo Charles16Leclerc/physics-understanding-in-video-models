@@ -181,19 +181,7 @@ $$
 - 二者共享 vision evidence，但在 LLM 中分叉；
 - Judgment 甚至比 Prediction 更早/更容易出现。
 
-### RQ4：Judgment 是否存在统一的 “physical validity” representation？
-
-不同 violation family 是否共享同一子空间/同一 circuit？
-
-也可能得到反结论：
-
-$$
-S_{\text{wall-validity}} \perp S_{\text{other-validity}}
-$$
-
-即所谓 “physical plausibility” 并不是统一概念，而是一组 task-specific consistency mechanism。
-
-### RQ5：probe 出来的物理变量是否真的被模型使用？
+### RQ4：probe 出来的物理变量是否真的被模型使用？
 
 区分：
 
@@ -203,7 +191,7 @@ $$
 
 通过 activation patching / interchange intervention 检验 state variable 与 downstream prediction/judgment 的因果关系。
 
-### RQ6：不同模型家族是否形成系统性不同的 physical organization？
+### RQ5：不同模型家族是否形成系统性不同的 physical organization？
 
 期望不是简单比较“谁分数高”，而是得到 architecture-level 结构结论，例如：
 
