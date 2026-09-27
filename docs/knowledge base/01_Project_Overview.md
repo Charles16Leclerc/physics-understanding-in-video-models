@@ -9,7 +9,7 @@ tags: [overview, proposal, motivation, theory, experiment-design]
 
 > 本文档不是一个简短的 project summary，而是一份用于长期维护、对外讲述和制作 PPT 的**研究提案总纲**。它不替代各个细分设计文档，而是严格依据当前知识库中已经形成的详细设计，系统回答：**为什么这个问题值得研究、为什么我们的理论划分与模型选择不是 arbitrary、为什么采用 mechanistic interpretability、实验怎样逐层回答科学问题、各项设计为什么这样做，以及什么样的结果能够构成有效科学结论。**
 >
-> 细节分别见：[[02_Motivation_and_Research_Questions]]、[[03_Theory_State_Prediction_Judgment]]、[[04_Model_Scope_and_Architectures]]、[[05_Benchmark_and_Dataset_Design]]、[[06_Probe_and_Readout_Design]]、[[07_Mechanistic_Interpretability_and_Causal_Intervention]]、[[08_Experiment_Plan_and_Evaluation]]、[[09_Engineering_Compute_and_Code_Architecture]]、[[10_Related_Work]]、[[12_Risks_Failure_Modes_and_Claim_Discipline]]。
+> 细节分别见：[[02_Motivation_and_Research_Questions]]、[[03_Theory_State_Prediction_Judgment]]、[[04_Model_Scope_and_Architectures]]、[[05_Benchmark_and_Experiment_Design]]、[[06_Probe_and_Readout_Design]]、[[07_Mechanistic_Interpretability_and_Causal_Intervention]]、[[08_Experiment_Plan_and_Evaluation]]、[[09_Engineering_Compute_and_Code_Architecture]]、[[10_Related_Work]]、[[12_Risks_Failure_Modes_and_Claim_Discipline]]。
 
 ## 工作标题
 
@@ -57,6 +57,7 @@ $$
 \boxed{\text{Physical Judgment}}.
 $$
 
+、
 ## 2.1 Physical State：当前世界是什么状态？
 
 State 指模型从已经观察到的视频中形成的、描述当前物理世界的表示。候选变量包括位置 $p$、速度 $v$、speed、heading、barrier geometry / normal、object / contact state 等。

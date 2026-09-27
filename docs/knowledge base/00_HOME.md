@@ -18,7 +18,7 @@ tags: [home, navigation]
 
 ## 二、实验设计
 
-5. [[05_Benchmark_and_Dataset_Design|统一 Benchmark / 数据集设计]]：解析 2D 刚体动力学、渲染、标签、shortcut 防护、benchmark 合格性测试。
+5. [[05_Benchmark_and_Experiment_Design|Benchmark和实验细则]]：本项目关于 benchmark、场景、物理系统、数据生成、任务定义、实验中涉及的物理量、Judgment violation、跨场景泛化、以及第二阶段 causal intervention 的统一规范
 6. [[06_Probe_and_Readout_Design|Probe / Readout 设计]]：mean pooling、Linear/MLP、attentive pooling、relational transformer、layer sweep、computational accessibility。
 7. [[07_Mechanistic_Interpretability_and_Causal_Intervention|Mechanistic Interpretability 与因果干预]]：子空间、patching、interchange intervention、steering、DAS 备选方案、因果 claim 边界。
 8. [[08_Experiment_Plan_and_Evaluation|实验计划与评测]]：从 benchmark 资格测试到 broad sweep、token-aware probing、causal microscope 的执行顺序。

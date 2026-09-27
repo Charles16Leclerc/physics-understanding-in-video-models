@@ -31,7 +31,7 @@
 - [[02_Motivation_and_Research_Questions|研究动机与科学问题]]
 - [[03_Theory_State_Prediction_Judgment|理论框架：State、Prediction 与 Judgment]]
 - [[04_Model_Scope_and_Architectures|研究对象、模型与架构]]
-- [[05_Benchmark_and_Dataset_Design|统一 Benchmark / 数据集设计]]
+- [[05_Benchmark_and_Experiment_Design]]
 - [[06_Probe_and_Readout_Design|Probe / Readout 设计]]
 - [[07_Mechanistic_Interpretability_and_Causal_Intervention|Mechanistic Interpretability 与因果干预]]
 - [[08_Experiment_Plan_and_Evaluation|实验计划与评测]]
