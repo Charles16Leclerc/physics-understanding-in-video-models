@@ -3303,7 +3303,7 @@ bad_outgoing_angle_to_barrier_deg
 
 alternate_barrier_rotation_deg
 alternate_barrier_axis_angle_rad
-alternate_barrier_vertices
+alternate_barrier_vertices_xy
 alternate_barrier_feasible
 
 invalid_final_center_xy
