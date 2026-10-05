@@ -925,7 +925,7 @@ $$
 
 ---
 
-## 10.1 Time-to-collision
+## 11.1 Time-to-collision
 
 从 Context 结束时刻计：
 
@@ -939,7 +939,7 @@ $$
 
 ---
 
-## 10.2 Collision point
+## 11.2 Collision point
 
 建议 simulator 同时保存：
 
@@ -964,7 +964,7 @@ $$
 
 ---
 
-## 10.3 Post-collision velocity
+## 11.3 Post-collision velocity
 
 保存：
 
@@ -992,7 +992,7 @@ $$
 
 ---
 
-## 10.4 Post-collision speed 的地位
+## 11.4 Post-collision speed 的地位
 
 因为：
 
@@ -1013,7 +1013,7 @@ $$
 
 ---
 
-## 10.5 Future free-flight position
+## 11.5 Future free-flight position
 
 旧设计中的：
 
@@ -1041,7 +1041,7 @@ $$
 
 > 模型是否能根据 pre-collision state 与 barrier geometry，判断 observed post-collision direction 是否符合反射规律。
 
-## 11.1 v1 不加入的 violation
+## 12.1 v1 不加入的 violation
 
 不加入：
 
@@ -1055,7 +1055,7 @@ $$
 
 原因：第一版关注同一反射 law 内的 State → Prediction / Judgment 机制，而不是寻找 universal invalidity direction。
 
-## 11.2 Valid trajectory
+## 12.2 Valid trajectory
 
 $$
 v_{valid}^+=v^- -2(v^-\cdot n)n.
@@ -1076,7 +1076,7 @@ angular_violation_rad = 0
 normalized_violation_severity = 0
 ```
 
-## 11.3 Invalid trajectory 的唯一正式 operator
+## 12.3 Invalid trajectory 的唯一正式 operator
 
 v1 只使用一种正式生成 operator：
 
@@ -1118,7 +1118,7 @@ $$
 v_{bad}^+=\|v^-\|(\cos\theta_{bad}^+,\sin\theta_{bad}^+).
 $$
 
-## 11.4 Invalid outgoing 的独立几何检查
+## 12.4 Invalid outgoing 的独立几何检查
 
 $\delta$ 的数值不代替任何以下 check。
 
@@ -1152,7 +1152,7 @@ $$
 
 invalid future 不得重新撞 barrier。
 
-## 11.5 Alternate-barrier feasibility check
+## 12.5 Alternate-barrier feasibility check
 
 正式 violation 仍以“直接改变出射角”叙述，但每个 bad candidate 必须验证：
 
@@ -1203,7 +1203,7 @@ alternate barrier：
 
 该 alternate geometry 只是 support-feasibility validation；它不能替代后续的 valid/invalid marginal matching。
 
-## 11.6 Good / Bad prefix 完全一致
+## 12.6 Good / Bad prefix 完全一致
 
 对同一 Judgment pair：
 
@@ -1227,13 +1227,13 @@ $$
 
 # 13. Judgment Targets 与 Sampling
 
-## 12.1 Binary validity
+## 13.1 Binary validity
 
 $$
 \boxed{y_{valid}\in\{0,1\}}.
 $$
 
-## 12.2 Canonical continuous severity
+## 13.2 Canonical continuous severity
 
 正式 GT：
 
@@ -1250,7 +1250,7 @@ angular_violation_rad
 
 主 severity probe 优先以 raw $\Delta\theta$ 为 GT。
 
-## 12.3 Normalized severity
+## 13.3 Normalized severity
 
 固定：
 
@@ -1265,7 +1265,7 @@ $$
 
 不要定义成 $(\delta-5^\circ)/85^\circ$，否则最轻 invalid 会与 valid 共用 0。
 
-## 12.4 Continuous severity，不用离散 grid
+## 13.4 Continuous severity，不用离散 grid
 
 正式 invalid proposal：
 
@@ -1283,13 +1283,13 @@ $$
 
 原因：离散 severity 是没有物理意义的人为模式。
 
-## 12.5 Acceptance 会改变最终 severity distribution
+## 13.5 Acceptance 会改变最终 severity distribution
 
 alternate-barrier ROI、bad outgoing angle、post trajectory 等 rejection 会让 accepted $P(\delta)$ 偏离 uniform。
 
 因此正式生成后必须统计 accepted severity histogram；若失衡，可对连续 $\delta$ 做 bin-based quota / resampling，但 bin 内仍连续采样。
 
-## 12.6 Violation sign balancing
+## 13.6 Violation sign balancing
 
 若 $+\delta$ 与 $-\delta$ 都合法，等概率选 sign。
 
@@ -1301,7 +1301,7 @@ $$
 
 必要时 balancing，避免“向某一侧偏就是 invalid”的 shortcut。
 
-## 12.7 Judgment class balance
+## 13.7 Judgment class balance
 
 目标：
 
@@ -1635,7 +1635,7 @@ $$
 
 ---
 
-## 14.1 主 broad experiment：Pooled Diverse Training
+## 15.1 主 broad experiment：Pooled Diverse Training
 
 第一部分主 layer map 中，不建议对每个：
 
@@ -1670,7 +1670,7 @@ $$
 
 ---
 
-## 14.2 Canonical 的角色
+## 15.2 Canonical 的角色
 
 Canonical 主要用于：
 
@@ -1690,7 +1690,7 @@ $$
 
 ---
 
-## 14.3 Cross-domain generalization：Secondary analysis
+## 15.3 Cross-domain generalization：Secondary analysis
 
 只对：
 
@@ -1725,7 +1725,7 @@ train family i → test family j
 
 ---
 
-## 14.4 结果解释原则
+## 15.4 结果解释原则
 
 ### family-specific probe 都好，但 zero-shot transfer 差
 
@@ -1755,7 +1755,7 @@ train family i → test family j
 
 ---
 
-## 14.5 Paired render invariance 与真正 generalization 必须分开
+## 15.5 Paired render invariance 与真正 generalization 必须分开
 
 同一个 latent trajectory：
 
@@ -1791,7 +1791,7 @@ $$
 
 # 16. Train / Val / Test Split Integrity
 
-## 15.1 Split 按 latent scene，而不是视频文件
+## 16.1 Split 按 latent scene，而不是视频文件
 
 同一 latent scene 的：
 
@@ -1804,7 +1804,7 @@ $$
 
 ---
 
-## 15.2 Generalization experiment 例外必须显式定义
+## 16.2 Generalization experiment 例外必须显式定义
 
 若专门做 same-latent paired invariance：
 
@@ -1867,7 +1867,7 @@ $$
 
 # 19. 第二阶段 Primary Causal Experiment A：State → Prediction
 
-## 18.1 Intervention
+## 19.1 Intervention
 
 尝试对内部 candidate representation 做：
 
@@ -1891,7 +1891,7 @@ $$
 
 ---
 
-## 18.2 Primary downstream endpoint
+## 19.2 Primary downstream endpoint
 
 只把：
 
@@ -1911,7 +1911,7 @@ $$
 
 ---
 
-## 18.3 第一版不把 TTC / contact point 作为 causal endpoint
+## 19.3 第一版不把 TTC / contact point 作为 causal endpoint
 
 这不是因为 simulator 无法定义它们。
 
@@ -1949,7 +1949,7 @@ $$
 
 ---
 
-## 18.4 Contact Prediction 也不纳入第一批 causal intervention
+## 19.4 Contact Prediction 也不纳入第一批 causal intervention
 
 理由相同且更严重。
 
@@ -2029,7 +2029,7 @@ $$
 
 ---
 
-## 20.1 Base case
+## 21.1 Base case
 
 完整 observed video 是 valid：
 
@@ -2047,7 +2047,7 @@ $$
 
 ---
 
-## 20.2 只改内部 pre-state expectation，不改 observed future
+## 21.2 只改内部 pre-state expectation，不改 observed future
 
 例如内部 intervention：
 
@@ -2092,7 +2092,7 @@ $$
 
 ---
 
-## 20.3 Barrier direction intervention
+## 21.3 Barrier direction intervention
 
 同理，保持：
 
@@ -2125,7 +2125,7 @@ $$
 
 ---
 
-## 20.4 这个实验真正回答什么
+## 21.4 这个实验真正回答什么
 
 不是：
 
@@ -2175,7 +2175,7 @@ $$
 
 # 23. 第二阶段 Source/Base Pair 的生成
 
-## 22.1 Counterfactual label 不需要现在预渲染
+## 23.1 Counterfactual label 不需要现在预渲染
 
 当前生成主 benchmark 时，只需保存足够完整 latent metadata。
 
@@ -2193,7 +2193,7 @@ $$
 
 ---
 
-## 22.2 但 real-source interchange 最终需要 source input
+## 23.2 但 real-source interchange 最终需要 source input
 
 如果使用：
 
@@ -2214,7 +2214,7 @@ $$
 
 ---
 
-## 22.3 Velocity source pair
+## 23.3 Velocity source pair
 
 尽量构造：
 
@@ -2241,7 +2241,7 @@ $$
 
 ---
 
-## 22.4 Barrier source pair
+## 23.4 Barrier source pair
 
 构造：
 
@@ -2347,7 +2347,7 @@ $$
 
 # 26. Canonical 与 Diverse Rendering
 
-## 25.1 Canonical
+## 26.1 Canonical
 
 Canonical 不是纯白数学示意图。
 
@@ -2374,7 +2374,7 @@ $$
 
 ---
 
-## 25.2 Diverse
+## 26.2 Diverse
 
 Diverse 与 Canonical 共享同一 physics distribution，但改变视觉 nuisance：
 
@@ -2396,7 +2396,7 @@ Diverse 与 Canonical 共享同一 physics distribution，但改变视觉 nuisan
 
 # 27. Semantic Render Families
 
-## 26.1 Billiards-like overhead table
+## 27.1 Billiards-like overhead table
 
 特征：
 
@@ -2421,7 +2421,7 @@ Pocket interaction 不是 v1 physics。
 
 ---
 
-## 26.2 Air-hockey-like table
+## 27.2 Air-hockey-like table
 
 可能是物理语义最干净的一类：
 
@@ -2442,7 +2442,7 @@ $$
 
 ---
 
-## 26.3 Tabletop / Lab surface
+## 27.3 Tabletop / Lab surface
 
 要求：
 
@@ -2536,7 +2536,7 @@ $$
 
 ---
 
-## 29.1 Full-GT oracle
+## 30.1 Full-GT oracle
 
 使用 simulator 完整 state 与解析物理规则，任务必须接近 ceiling。
 
@@ -2546,7 +2546,7 @@ $$
 
 ---
 
-## 29.2 Prediction target qualification
+## 30.2 Prediction target qualification
 
 对于用于“模型是否执行额外 computation”论证的 Prediction target，应检查：
 
@@ -2568,7 +2568,7 @@ $$
 
 ---
 
-## 29.3 Label / nuisance marginal checks
+## 30.3 Label / nuisance marginal checks
 
 至少检查：
 
@@ -2593,7 +2593,7 @@ $$
 
 ---
 
-## 29.4 Judgment shortcut baselines
+## 30.4 Judgment shortcut baselines
 
 至少做：
 
@@ -2627,7 +2627,7 @@ $$
 
 ---
 
-## 29.5 Temporal controls
+## 30.5 Temporal controls
 
 按 task 选择：
 
@@ -2639,7 +2639,7 @@ $$
 
 ---
 
-## 29.6 Render / codec artifact check
+## 30.6 Render / codec artifact check
 
 必须人工和程序检查：
 
@@ -2664,7 +2664,7 @@ $$
 
 ---
 
-## 30.1 必须修复，否则不能进入主实验
+## 31.1 必须修复，否则不能进入主实验
 
 - Full-GT oracle 做不好；
 - positive / negative / reject 三类实现与本文档不一致；
@@ -2686,7 +2686,7 @@ $$
 
 ---
 
-## 30.2 不是 failure，而是研究结果
+## 31.2 不是 failure，而是研究结果
 
 以下都不构成项目失败：
 
@@ -2708,7 +2708,7 @@ $$
 
 ---
 
-## 30.3 Practical go/no-go
+## 31.3 Practical go/no-go
 
 如果在最干净 Canonical scene 下：
 
