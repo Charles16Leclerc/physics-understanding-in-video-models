@@ -17,7 +17,7 @@ tags:
 >
 > 本文档是本项目关于 **benchmark、场景、物理系统、数据生成、任务定义、实验中涉及的物理量、Judgment violation、跨场景泛化、以及第二阶段 causal intervention 的统一规范**。
 >
-> 它的地位是本项目科学目标落到具体实验实现时的**正式规格说明书（specification）**。后续 simulator、renderer、task generator、dataset builder、counterfactual generator，以及与场景直接相关的实验操作，都应以本文档为准。
+> 它的地位是本项目科学目标落到具体实验实现时的**正式规格说明书（specification）**。后续 simulator、renderer、Dataset Index、TaskManifestBuilder、dataset builder、counterfactual generator，以及与场景直接相关的实验操作，都应以本文档为准。
 >
 > 本文档**不负责**：
 >
@@ -2546,143 +2546,654 @@ $$
 
 ---
 
-# 26. Canonical 与 Diverse Rendering
+# 26. Renderer 总体设计：Natural but Controlled
 
-## 26.1 Canonical
+Renderer 的目标不是尽可能追求 photorealism，也不是做大规模 domain randomization，而是：
 
-Canonical 不是纯白数学示意图。
+> **让模型自然地把视频理解成“水平桌面上的球/圆盘撞击一个固定挡板”，同时让所有视觉 nuisance 都保持可控、可记录、可平衡，并显著弱于真正的物理变量变化。**
 
-应是：
+Renderer 必须遵守以下最高优先级原则：
 
-- 简洁；
-- 自然；
-- 明确俯视；
-- 无 clutter；
-- fixed camera；
-- fixed lighting；
-- fixed puck style；
-- fixed barrier style；
+1. **physics–appearance 解耦**：视觉资产不得改变 simulator 的几何、accept/reject 或 task label；
+2. **geometry fidelity**：ball、barrier、table 的可见轮廓必须与 latent geometry 一致；
+3. **temporal consistency**：同一视频中的所有静态纹理、颜色、亮度参数必须固定，禁止逐帧重新采样造成 flicker；
+4. **no hidden motion cue**：Canonical 不加 motion blur，ball 不使用可观察 rolling orientation 的纹理；
+5. **no directional-world cue**：不使用具有固定世界方向的 cast shadow、斜向 illumination gradient 或 perspective texture；
+6. **matched-pair consistency**：Judgment good/bad pair 必须共享完全相同的 appearance specification；
+7. **mechanistic cleanliness first**：任何“更真实”但可能引入额外 shortcut 的视觉效果都优先不加入。
+
+## 26.1 Canonical 与 Diverse 是两个 rendering regime
+
+正式区分：
+
+```text
+render_regime ∈ {canonical, diverse}
+```
+
+### Canonical
+
+Canonical 主要服务于：
+
+$$
+\boxed{\text{mechanistic cleanliness}}
+$$
+
+以及第二阶段 causal intervention。
+
+Canonical 的视觉资产**全部固定**，不对每个 scene 随机变化：
+
 - fixed surface；
-- **no motion blur**。
+- fixed outside-table background；
+- fixed ball color；
+- fixed barrier material；
+- fixed table rail；
+- fixed lighting / global tone；
+- no texture randomization；
+- no motion blur；
+- no cast shadow。
 
-其目的是：
+当前 v1 Canonical 定义为一个 **neutral puck-table / lab-table hybrid**，视觉语义接近 air-hockey / lab tabletop，但不加入会分散注意力的复杂比赛线条。
+
+推荐基础颜色：
+
+```text
+canonical_surface_rgb       = [226, 226, 221]   # off-white / light warm gray
+canonical_outer_rail_rgb    = [108, 113, 118]   # medium neutral gray
+canonical_outside_rgb       = [48, 50, 52]      # dark charcoal
+canonical_ball_rgb          = [182, 62, 56]     # muted red
+canonical_barrier_rgb       = [76, 81, 86]      # dark neutral metal
+canonical_bolt_rgb          = [148, 153, 157]   # light gray metal
+```
+
+这些 RGB 是 renderer v1 的默认值；若后续只做不改变结构的细微视觉调优，应增加 `renderer_version`，而不是改 simulator dataset version。
+
+### Diverse
+
+Diverse 主要服务于：
+
+- broad layerwise probing；
+- pooled-Diverse training；
+- cross-family transfer；
+- paired-render invariance analysis。
+
+Diverse 包含三个 semantic family：
+
+```text
+billiards
+air_hockey
+tabletop
+```
+
+Diverse 的变化方式统一采用：
 
 $$
-\boxed{\text{低 nuisance + natural visual semantics}}
+\boxed{\text{discrete style preset} + \text{small continuous jitter}}
 $$
 
-供第二阶段 mechanistic experiment 使用。
+而不是在整个 RGB / texture space 中无约束连续随机。
 
----
+理由：
 
-## 26.2 Diverse
+- discrete preset 便于 metadata 记录、balancing 与 shortcut audit；
+- small jitter 避免每个 preset 看起来像完全重复的 sprite；
+- 不会生成低对比、异常高饱和或语义不合理的组合。
 
-Diverse 与 Canonical 共享同一 physics distribution，但改变视觉 nuisance：
+## 26.2 Render nuisance 的随机性必须与 physics label 独立
 
-- semantic family；
-- surface material；
-- object color / simple skin；
+除非做专门 controlled experiment，以下 appearance variable 的 sampling 必须与：
+
+- Contact label；
+- speed；
+- velocity direction；
+- barrier orientation；
+- Judgment validity；
+- violation severity；
+
+独立。
+
+至少包括：
+
+- surface style；
+- ball color；
 - barrier material；
-- mild brightness/shadow；
-- 少量合理外观变化。
+- outside-table background；
+- global brightness / gamma jitter。
 
-当前避免：
-
-- 太剧烈 camera variation；
-- 大范围视角变化；
-- 强 clutter；
-- 会改变物理语义的物体替换。
-
----
-
-# 27. Semantic Render Families
-
-## 27.1 Billiards-like overhead table
-
-特征：
-
-- 完整桌框可见；
-- green / blue / red felt；
-- pockets 可作为 top-down billiards semantic cue；
-- moving object 使用 plain solid ball / puck-like disk；
-- 内部 barrier 是明显固定的 rail。
-
-不要使用：
-
-- cue stick；
-- triangle rack；
-
-作为 fixed wall，因为现实中这些对象可移动，会与 simulator prior 冲突。
-
-若画面有 pockets：
-
-> 主 v1 trajectory 必须与 pockets 保持安全距离。
-
-Pocket interaction 不是 v1 physics。
-
----
-
-## 27.2 Air-hockey-like table
-
-可能是物理语义最干净的一类：
-
-- overhead；
-- horizontal plane；
-- low-friction semantic；
-- puck；
-- plastic rail/barrier；
-- rink/table markings。
-
-它与：
+正式 dataset 必须检查：
 
 $$
-\text{constant-speed planar puck dynamics}
+P(\text{appearance ID}\mid y)
 $$
 
-高度一致。
+在不同 label 下没有明显失衡。
+
+## 26.3 同一 appearance 在整段视频中完全固定
+
+对一个 `render_variant_id`：
+
+- table texture 不随 frame 变化；
+- outside background 不随 frame 变化；
+- ball color 不随 frame 变化；
+- barrier texture / bolt pattern 不随 frame 变化；
+- global brightness / gamma 不随 frame 变化。
+
+如果 procedural texture 使用 random noise，必须在视频开始前由 `RenderSpec` 的固定 seed 生成一次，之后所有 frame 复用同一 texture。
 
 ---
 
-## 27.3 Tabletop / Lab surface
+# 27. Semantic Render Families 与背景设计
+
+## 27.1 所有 family 的共同空间原则
+
+Visual table 的 outer footprint 始终是：
+
+$$
+420\times308\ \text{px}=15\times11\ \text{cells}.
+$$
+
+Physics ROI 仍只存在于 latent geometry 中，**不得在画面中显式画成矩形框**。
+
+桌面必须完整可见，桌外必须保留一圈 background，使模型能明确判断：
+
+> 这是一个从上方观察的水平桌面，而不是填满 frame 的竖直纹理平面。
+
+Visual table 的 outer rail / border 只能占用 Physics ROI 外侧的视觉缓冲带，不得侵入 Physics ROI 形成新的潜在“物理墙”。
+
+建议 outer rail 的可见厚度：
+
+```text
+6–10 px
+```
+
+始终小于 table 与 Physics ROI 之间每侧 14 px 的视觉 buffer。
+
+## 27.2 桌外区域的统一设计原则
+
+桌外区域必须：
+
+- 低饱和；
+- 中低亮度；
+- 低纹理；
+- 无强方向性；
+- 与桌面有足够 contrast 以显示桌面边界；
+- 不使用纯白 / 纯黑极端背景；
+- 不使用棋盘格、地砖缝、透视地板等强结构纹理。
+
+Diverse 中可以从 family-specific 的少量 preset 中离散采样，再做轻微亮度 jitter。
+
+## 27.3 Billiards family
+
+### Surface
+
+语义必须保持为绿色 felt，不使用红桌、蓝桌、紫桌等大跨度变化。
+
+建议 v1 预生成 4 个 base surface preset：
+
+```text
+billiards_surface_0 = [47, 112, 73]
+billiards_surface_1 = [37, 101, 68]
+billiards_surface_2 = [54, 121, 82]
+billiards_surface_3 = [43, 95, 70]
+```
+
+允许在选中 base preset 后加入：
+
+```text
+surface_brightness_gain ~ U(0.96, 1.04)
+surface_saturation_gain ~ U(0.96, 1.04)
+hue_jitter_deg          ~ U(-2, 2)
+```
+
+但最终仍必须明显属于 green felt family。
+
+Texture 只允许非常弱的无方向 fine noise / felt grain；luminance variation 建议不超过 base value 的约 3%。
+
+### Table rail
+
+以深褐 / dark walnut / near-black brown 为主，例如：
+
+```text
+[74, 48, 34]
+[58, 42, 34]
+[83, 53, 37]
+```
+
+允许极弱 wood-like variation，但不得出现明显单方向长木纹。
+
+### Pockets
+
+可保留标准 top-down billiards pockets 作为 semantic cue。
+
+Pockets 只存在于 table edge；Physics ROI 与 ball-center legal region 已使主轨迹远离桌边，因此 pocket 不参与 v1 physics。
+
+### Outside-table background
+
+使用 dark charcoal / brown-gray，例如：
+
+```text
+[44, 42, 40]
+[52, 48, 45]
+```
+
+只允许弱全局 noise，不画地板缝或透视线。
+
+## 27.4 Air-Hockey family
+
+### Surface
+
+必须保持白 / off-white / very light gray：
+
+```text
+air_surface_0 = [238, 238, 235]
+air_surface_1 = [232, 235, 238]
+air_surface_2 = [244, 243, 237]
+air_surface_3 = [235, 238, 236]
+```
+
+### Markings
+
+允许：
+
+- center line；
+- center circle；
+- 少量左右对称的 rink / goal-area markings。
 
 要求：
 
-- 完整桌面边缘可见；
-- 桌外保留 background / floor；
-- wood / gray lab table / rubber mat；
-- barrier 可以是固定 acrylic / metal / wooden rail。
+- 线宽细；
+- 低 contrast；
+- 左右/上下对称；
+- 不根据 physics label 改变；
+- 不生成恰好沿某条典型 ball trajectory 的单侧强线条。
 
-必须避免整张图只是：
+推荐 marking luminance 与 surface 相差不超过约 10–15%。
 
-> “一块 texture 填满 frame”
+### Rail
 
-导致无法知道是 horizontal tabletop 还是 vertical plane。
+medium gray / blue-gray / dark neutral plastic：
+
+```text
+[92, 99, 105]
+[82, 91, 103]
+[110, 112, 114]
+```
+
+### Outside-table background
+
+medium-dark neutral gray：
+
+```text
+[58, 61, 64]
+[66, 68, 70]
+```
+
+## 27.5 Tabletop / Lab family
+
+### Surface
+
+必须以浅色为主：
+
+```text
+tabletop_surface_0 = [225, 219, 205]   # warm beige
+tabletop_surface_1 = [224, 226, 222]   # neutral light gray
+tabletop_surface_2 = [232, 228, 218]   # pale warm wood-like
+tabletop_surface_3 = [219, 225, 228]   # pale blue-gray
+```
+
+允许：
+
+- 极弱 low-frequency mottling；
+- 极弱细纹；
+- 低 contrast procedural texture。
+
+禁止：
+
+- 明显 wood grain 主方向；
+- 砖缝；
+- 网格；
+- 长直线纹路；
+- perspective floor texture。
+
+如果使用 wood-like preset，纹理 amplitude 必须低到不会成为 barrier / velocity direction 的显著参照。
+
+### Table edge
+
+可为：
+
+- neutral gray；
+- pale wood；
+- muted metal。
+
+但都只作为视觉桌沿，不参与 physics。
+
+### Outside-table background
+
+使用 desaturated warm gray / neutral gray：
+
+```text
+[72, 70, 67]
+[68, 71, 72]
+```
+
+## 27.6 Lighting 与光影
+
+v1 不使用真实 directional lighting。
+
+明确禁止：
+
+- directional cast shadow；
+- barrier 在固定世界方向投射的长阴影；
+- ball 单侧 shadow；
+- across-frame directional illumination gradient；
+- 会暗示 camera tilt / world vertical 的高光布局。
+
+Canonical：
+
+```text
+directional_light = false
+cast_shadow = false
+global_brightness_gain = 1.0
+global_gamma = 1.0
+global_saturation_gain = 1.0
+```
+
+Diverse 只允许很轻的**全局、无方向** tone variation：
+
+```text
+global_brightness_gain ~ U(0.96, 1.04)
+global_gamma           ~ U(0.97, 1.03)
+global_saturation_gain ~ U(0.96, 1.04)
+```
+
+这些参数对整张视频固定。
+
+若未来想引入更自然 lighting，必须作为单独 renderer version / robustness extension，而不是静默加入 v1。
 
 ---
 
-# 28. Object Texture 与 Rolling
+# 28. Ball、Barrier 外观与 Visual Asset Creation
 
-v1 moving object 更适合：
+## 28.1 Ball：几何与纹理原则
 
-- puck；
-- plain disk；
-- solid-color axisymmetric ball；
-- radial shading。
+Ball / puck 的可见 silhouette 必须严格对应：
 
-不建议直接用：
+$$
+d_{ball}=35\ \text{px}.
+$$
 
-- numbered billiard ball；
-- striped billiard ball；
+v1 ball 定义为：
 
-然后只做 2D sprite translation。
+> **solid-color, axisymmetric, orientation-free object**。
+
+具体要求：
+
+- 整体纯色填充；
+- 只有 antialiased edge；
+- 不画数字；
+- 不画条纹；
+- 不画 logo；
+- 不画可观察方向的 highlight；
+- 不画 rolling texture；
+- 不随 frame 改变颜色或纹理。
+
+这样视频本身不会告诉模型球是在 rolling 还是 sliding。
+
+## 28.2 Canonical ball
+
+Canonical ball 颜色固定：
+
+```text
+canonical_ball_rgb = [182, 62, 56]
+```
+
+即 muted red。
+
+Canonical 不做任何 per-scene color jitter。
+
+## 28.3 Diverse ball color sampling
+
+Diverse 不在完整 RGB cube 连续采样，而使用：
+
+$$
+\boxed{\text{small discrete palette} + \text{weak jitter}}
+$$
+
+每个 family 默认 5 个 base color，均匀采样。
+
+### Billiards ball palette
+
+```text
+muted_red    = [184, 72, 64]
+cobalt_blue  = [63, 99, 158]
+ochre        = [190, 147, 55]
+muted_orange = [194, 103, 58]
+ivory        = [215, 208, 191]
+```
+
+不使用绿色 ball，避免与 green felt 低对比。
+
+### Air-Hockey ball palette
+
+```text
+red          = [190, 61, 57]
+blue         = [55, 92, 154]
+charcoal     = [62, 66, 70]
+orange       = [201, 104, 50]
+dark_teal    = [42, 102, 106]
+```
+
+不使用 white / near-white puck，避免与白色桌面低对比。
+
+### Tabletop ball palette
+
+```text
+red          = [184, 67, 61]
+blue         = [62, 97, 151]
+orange       = [197, 111, 56]
+dark_teal    = [48, 103, 104]
+charcoal     = [69, 72, 74]
+```
+
+选中 base color 后允许：
+
+```text
+ball_brightness_gain ~ U(0.95, 1.05)
+ball_saturation_gain ~ U(0.95, 1.05)
+ball_hue_jitter_deg  ~ U(-2, 2)
+```
+
+最终 renderer 必须做 minimum-contrast check，避免 ball 与 local table surface 亮度/颜色过于接近；不满足时重新采 appearance，而不是改变 physics scene。
+
+## 28.4 Barrier：必须在完全矩形 footprint 内表达“固定/很重”
+
+Barrier 的可见 silhouette 必须严格是 simulator 的：
+
+$$
+140\times28\ \text{px}
+$$
+
+矩形 footprint。
+
+不得添加任何超出 footprint 的：
+
+- foot；
+- clamp；
+- handle；
+- protrusion；
+- shadow geometry。
+
+### 固定视觉暗示
+
+v1 使用：
+
+> **厚重矩形 rail + 内部 bevel/border + 4 个 recessed bolt heads**。
+
+所有视觉固定结构完全位于 barrier rectangle 内。
+
+建议 local barrier coordinates 中 4 个 bolt center：
+
+```text
+u = ±45 px
+v = ±5 px
+bolt_radius = 2.5 px
+```
+
+其中：
+
+- $u$ 沿 barrier long axis；
+- $v$ 沿 barrier short axis。
+
+四个 bolt 对称布置，避免形成箭头、正负方向或某一端“更重”的视觉暗示。
+
+Barrier 可以再画一个完全位于 footprint 内的 2 px inset bevel / border，以增强“厚重 rail”感。
+
+### 关键限制
+
+Barrier 的视觉装饰必须保持 180° 对称，不能让模型通过纹理本身定义一个有向 arrow-like orientation。
+
+## 28.5 Canonical barrier
+
+固定：
+
+```text
+material_id = canonical_dark_metal
+base_rgb    = [76, 81, 86]
+bolt_rgb    = [148, 153, 157]
+texture     = none
+bevel       = enabled
+bolt_count  = 4
+```
+
+## 28.6 Diverse barrier materials
+
+每个 semantic family 默认提供 3 个离散 material preset，再做弱亮度 jitter。
+
+### Billiards
+
+```text
+dark_wood   = [82, 54, 39]
+near_black  = [52, 48, 45]
+dark_brown  = [96, 63, 43]
+```
+
+### Air Hockey
+
+```text
+dark_plastic = [64, 69, 74]
+blue_gray    = [73, 84, 98]
+light_plastic = [155, 159, 161]
+```
+
+### Tabletop / Lab
+
+```text
+aluminum_gray = [130, 136, 140]
+dark_metal    = [69, 74, 78]
+matte_black   = [52, 54, 56]
+```
+
+Material texture 只能是低 contrast、近各向同性的细微 roughness；不得加入高 contrast wood grain、brushed-line direction、文字或 logo。
+
+建议：
+
+```text
+barrier_brightness_gain ~ U(0.96, 1.04)
+texture_luminance_amplitude <= 0.03
+```
+
+## 28.7 Visual assets 的来源：全部 procedural，不以生成式 AI 图片为主资产
+
+v1 正式规定：
+
+> **主要视觉资产使用 NumPy / OpenCV / Pillow 程序化生成，不使用生成式 AI 图片作为核心 background / texture source。**
 
 原因：
 
-- 真实球面滚动会改变纹理；
-- 简单 image-plane rotation 也不等于真实 3D rolling；
-- 会制造与 simulator 不一致的视觉 motion cue。
+- procedural asset 可 deterministic replay；
+- 没有不可控 perspective / lighting cue；
+- 易于记录 nuisance metadata；
+- 易于保证 texture 与 label 独立；
+- 易于做 matched good/bad render；
+- 不会混入文字、logo、奇怪物体或语义 artifact。
 
-第一版优先保持 axisymmetric appearance。
+推荐 asset pipeline：
+
+```text
+AssetBankConfig
+        ↓
+procedural surface preset generation
+        ↓
+procedural rail/background preset generation
+        ↓
+ball palette generation
+        ↓
+barrier material / bolt preset generation
+        ↓
+static AssetBank
+        ↓
+RenderSpec selects preset IDs + small jitter
+```
+
+### v1 Diverse 默认 asset bank 大小
+
+每个 family 默认：
+
+```text
+surface_style_count           = 4
+outside_background_count      = 2
+ball_color_count              = 5
+barrier_material_count        = 3
+table_rail_style_count        = 3
+```
+
+Air-Hockey 可额外提供：
+
+```text
+marking_style_count = 3
+```
+
+这些数量用于第一版 asset generation；后续增加 asset 数量只需更新 `renderer_version / asset_bank_version`，不改变 physics dataset version。
+
+## 28.8 Anti-aliasing 与 supersampling
+
+最终输出：
+
+$$
+448\times448.
+$$
+
+推荐内部：
+
+$$
+896\times896\rightarrow448\times448
+$$
+
+或其他整数倍 supersampling 后 antialiased downsample。
+
+所有物理位置仍定义在 448-space，supersampling 仅用于 rasterization。
+
+## 28.9 RenderSpec 必须在视频级固定
+
+一个 `appearance_spec_id` 决定一个视频的全部静态 visual nuisance。
+
+对于 Judgment good / bad pair：
+
+$$
+\boxed{\text{appearance\_spec\_id}^{good}=\text{appearance\_spec\_id}^{bad}}
+$$
+
+也就是说：
+
+- same surface preset；
+- same texture；
+- same ball color；
+- same barrier material；
+- same bolts；
+- same global tone；
+- same background；
+- only post-collision trajectory differs。
+
+第二阶段 matched source/base 若用于 mechanistic intervention，也应尽量复用相同 appearance spec。
 
 ---
 
@@ -2853,6 +3364,51 @@ $$
 
 ---
 
+## 30.7 Renderer / Asset Qualification
+
+正式 foundation-model experiment 前，renderer 还必须通过以下检查：
+
+### Temporal consistency
+
+- 静态 background / texture 在 24 帧中逐像素固定；
+- 不存在 per-frame random noise flicker；
+- ball 只有位置变化，不存在颜色/纹理闪烁。
+
+### Geometry fidelity
+
+- ball visible diameter 与 latent 35 px 定义一致；
+- barrier silhouette 与 $140\times28$ px rectangle 一致；
+- bolt / bevel 全部位于 barrier footprint 内；
+- table rail 不侵入 Physics ROI。
+
+### No directional-light shortcut
+
+- 无 cast shadow；
+- 无固定方向 illumination gradient；
+- 无 perspective texture cue。
+
+### Appearance–label independence
+
+用 metadata 直接训练简单 classifier / tabular baseline：
+
+```text
+surface_style_id
+ball_color_id
+barrier_material_id
+outside_background_style_id
+global tone parameters
+```
+
+不应能显著预测 Contact label 或 Judgment validity。
+
+### Matched Judgment render
+
+Good / bad pair 的 `appearance_spec_id` 必须完全相同。
+
+如果仅凭 render metadata 就能区分 valid / invalid，则 benchmark invalid。
+
+---
+
 # 31. 一票否决 Failure Modes 与“只是结果”的现象
 
 真正的一票否决应针对：
@@ -2883,7 +3439,11 @@ $$
 - Judgment invalid 穿墙或 near-tangent；
 - Judgment alternate-barrier feasibility 未实现；
 - good/bad 的速度、方向、sign、severity 等 marginal 严重失衡且未控制；
-- support 几何因 render family 改变 latent acceptance。
+- support 几何因 render family 改变 latent acceptance；
+- background / texture 在视频中逐帧 flicker；
+- renderer 引入 directional cast shadow / perspective cue；
+- appearance style ID 与 Contact / Judgment label 存在明显相关；
+- Judgment good/bad 没有共享同一 `appearance_spec_id`。
 
 ---
 
@@ -2934,9 +3494,28 @@ $$
 
 ---
 
-# 32. Simulator / Dataset 代码职责
+# 32. Simulator、Renderer、Dataset Index 与 Task Manifest 的代码职责
 
-正式推荐流程：
+正式推荐把系统理解为四个层级：
+
+$$
+\boxed{\text{Simulator}}
+\rightarrow
+\boxed{\text{Renderer}}
+\rightarrow
+\boxed{\text{Dataset Index}}
+\rightarrow
+\boxed{\text{TaskManifestBuilder}}
+$$
+
+它们分别回答：
+
+1. **Simulator**：世界发生了什么？
+2. **Renderer**：这个物理世界长什么样？
+3. **Dataset Index**：磁盘上实际存了哪些 latent scene、trajectory、render、Judgment pair？
+4. **TaskManifestBuilder**：某个实验具体消费哪些样本、哪些 frame、哪些 target？
+
+## 32.1 物理与渲染生成主流程
 
 ```text
 PhysicsConfig
@@ -2958,6 +3537,8 @@ RenderSpecGenerator
 Renderer
         ↓
 DatasetWriter
+        ↓
+DatasetIndex
 ```
 
 Judgment：
@@ -2973,7 +3554,13 @@ Bad-Trajectory Geometry Check
         ↓
 Alternate-Barrier Feasibility Check
         ↓
-Matched Good / Bad Render
+Matched Good / Bad Trajectories
+        ↓
+shared AppearanceSpec
+        ↓
+Renderer
+        ↓
+DatasetIndex
 ```
 
 第二阶段：
@@ -2988,27 +3575,97 @@ Intervention-safe Validation
 On-demand Source Rendering
 ```
 
-## 32.1 Schema 通用序列化规约
+## 32.2 `TaskLabelGenerator` 与 `TaskManifestBuilder` 必须严格区分
 
-- 所有 world-space vector / point 字段使用长度为 2 的 `[x, y]` 数组；内部计算与 Parquet 等 typed storage 使用 `float64`；
-- `_px`、`_s`、`_rad`、`_deg`、`_frame_index` 后缀分别表示 pixel、second、radian、degree 和从 0 开始的整数 frame index；
-- frame-major 数组长度固定为 `num_frames=24`，第 $i$ 项对应 `frame_times_s[i]=i/fps`；
-- enum 使用文档给出的 lowercase snake-case 字符串；boolean 只能序列化为 `true / false`；
-- 不适用或不存在的 optional event 字段写为 `null`，禁止用 `NaN`、`Inf`、空数组或 magic number；
-- 同一 config + code version + seeds 必须逐字段 deterministic replay，包括 identifier。
+旧的 “Task Generator” 这个名字容易把两个完全不同的职责混在一起，v1 不再单独使用该模糊术语。
 
-v1 identifier 的 reference encoding 固定为：
+### `TaskLabelGenerator`
+
+位于 simulator pipeline 内部。
+
+职责：
+
+> 从已经接受的 latent physics / exact event metadata 中派生 canonical task labels。
+
+例如：
+
+- State labels；
+- `contact_binary`；
+- TTC；
+- contact point；
+- post-collision direction；
+- Judgment validity / severity。
+
+它**不决定训练/测试 split，不做实验采样，不处理模型输入格式**。
+
+### `TaskManifestBuilder`
+
+位于完整 dataset 已生成之后。
+
+职责：
+
+> 从 Dataset Index 中构造某个具体实验要消费的 dataset view / manifest。
+
+它：
+
+- 不重新模拟 physics；
+- 不重新计算 label；
+- 不修改视频；
+- 不复制视频作为默认行为；
+- 只做 filtering、selection、balancing、field projection 与 task-level packaging。
+
+因此更准确的概念是：
+
+$$
+\boxed{\text{TaskManifestBuilder} \approx \text{DatasetViewBuilder}}
+$$
+
+## 32.3 Renderer 的唯一输入是 latent trajectory + RenderSpec
+
+Renderer 不得根据：
+
+- Contact label；
+- Judgment validity；
+- violation severity；
+
+选择视觉风格。
+
+Renderer 只接收：
 
 ```text
-latent_scene_id = "ls-{scene_seed:016x}-{mode_code:02x}-{proposal_index:016x}"
-
-physical trajectory_variant_id = "{latent_scene_id}:physical"
-invalid trajectory_variant_id  = "{latent_scene_id}:invalid:{judgment_seed:016x}"
-judgment_pair_id               = "{latent_scene_id}:pair:{judgment_seed:016x}"
-render_variant_id              = "{trajectory_variant_id}:render:{render_seed:016x}"
+trajectory_variant
+appearance_spec
+frame_times
 ```
 
-`scene_seed`、`proposal_index`、`judgment_seed`、`render_seed` 均为 unsigned 64-bit integer；同一个 `(scene_seed, proposal_mode)` 下 `proposal_index` 不得重复。identifier 在单个 dataset version 内唯一；跨版本的全局 key 为 `(dataset_version, identifier)`。
+并输出 RGB frames / encoded video。
+
+## 32.4 Task manifest 定义的是“语义输入区间”，不是模型特定 tensor
+
+例如：
+
+- State / Contact / Dynamics 的观测语义区间是 Context frames 0–7；
+- Judgment 的观测语义区间是 full video frames 0–23。
+
+但具体 V-JEPA / VLM 如何：
+
+- resize；
+- resample frame；
+- pack temporal tubelets；
+- construct masked prediction input；
+
+属于 model adapter / experiment code，不由 05 文档固定。
+
+Task manifest 只需要明确：
+
+```text
+observation_start_frame
+observation_end_frame
+context_frame_indices
+future_frame_indices
+```
+
+以及 target fields。
 
 ---
 
@@ -3333,53 +3990,157 @@ actual_first_contact_feature
 
 ---
 
-# 41. `RenderSpec`
+# 41. `RenderSpec` / `AppearanceSpec`
 
-至少：
+Renderer 的视觉 nuisance 必须被显式结构化保存，而不是只存在于生成代码的随机状态中。
+
+建议区分：
+
+- `appearance_spec_id`：一套完整静态外观参数，可被多个 matched trajectory variant 复用；
+- `render_variant_id`：某个具体 trajectory 使用某个 appearance spec 后得到的实际视频实例。
+
+## 41.1 Canonical fields
+
+至少保存：
 
 ```text
-render_variant_id
+appearance_spec_id
 render_seed
-render_family
+asset_bank_version
+renderer_version
 
-surface_style
-surface_texture
+render_regime                 # canonical / diverse
+render_family                 # canonical_neutral / billiards / air_hockey / tabletop
 
-object_style
-object_color
+surface_style_id
+surface_base_rgb
+surface_texture_id
+surface_texture_seed
+surface_texture_strength
 
-barrier_style
-barrier_material
+table_rail_style_id
+outside_background_style_id
 
-lighting_variant
-support_style
+ball_color_id
+ball_base_rgb
+ball_brightness_gain
+ball_saturation_gain
+ball_hue_jitter_deg
+
+barrier_material_id
+barrier_base_rgb
+barrier_brightness_gain
+barrier_texture_strength
+bolt_style_id
+bolt_count
+
+global_brightness_gain
+global_gamma
+global_saturation_gain
+
+marking_style_id              # null unless applicable
+
+support_inside_barrier_footprint
+motion_blur
+directional_light
+cast_shadow
 ```
 
-v1 必须：
+## 41.2 v1 强制不变量
 
 ```text
 support_inside_barrier_footprint = true
 motion_blur = false
+directional_light = false
+cast_shadow = false
 ```
 
-Renderer 不负责物理，不允许在 render 后通过 pixel hack 制造 invalid。
+Canonical 额外固定：
+
+```text
+render_regime = canonical
+render_family = canonical_neutral
+all style IDs fixed
+all jitter gains = 1.0
+all hue jitter = 0
+```
+
+## 41.3 Diverse sampling
+
+Diverse 的 style ID 从对应 family 的有限 AssetBank 中离散均匀采样；连续 jitter 只在本文档允许的窄范围内采样。
+
+所有 appearance random variable 必须由 `render_seed` / `appearance_spec_id` deterministic replay。
+
+## 41.4 Matched render 规则
+
+Judgment good/bad pair：
+
+```text
+same appearance_spec_id
+same render_family
+same surface_style_id
+same ball_color_id
+same barrier_material_id
+same global tone
+```
+
+只允许 trajectory variant 不同。
+
+第二阶段 matched source/base pair 若实验目标不是研究视觉 domain shift，也应尽量使用相同 `appearance_spec_id`。
+
+## 41.5 Renderer 输出
+
+每个 render 至少记录：
+
+```text
+render_variant_id
+appearance_spec_id
+trajectory_variant_id
+video_path
+frame_count
+fps
+width_px
+height_px
+codec
+```
+
+Renderer 不负责 task label，也不允许在 render 后通过 pixel editing 制造 invalid。
 
 ---
 
-# 42. Dataset ID、Split 与可重放性
+# 42. Dataset ID、Dataset Index、Split 与 TaskManifestBuilder
+
+## 42.1 Canonical ID hierarchy
 
 推荐：
 
 ```text
 latent_scene_id
     ├── trajectory_variant_id(s)
-    │     └── render_variant_id(s)
+    │     ├── appearance_spec_id(s)
+    │     │      └── render_variant_id(s)
+    │     └── ...
     └── judgment_pair_id
           ├── valid_trajectory_variant_id   -> trajectory reference
           └── invalid_trajectory_variant_id -> trajectory reference
 ```
 
-canonical schema 不再使用含义重叠的 `scene_id`、`base_scene_id`、`paired_scene_id` 或 `render_id` 别名。`split` 保存在 dataset-level record，并由 `latent_scene_id` 决定；所有 trajectory / render / Judgment pair 继承该 split。
+Canonical schema 不再使用含义重叠的 `scene_id`、`base_scene_id`、`paired_scene_id` 或 `render_id` 别名。
+
+建议 reference encoding：
+
+```text
+latent_scene_id = "ls-{scene_seed:016x}-{mode_code:02x}-{proposal_index:016x}"
+
+physical trajectory_variant_id = "{latent_scene_id}:physical"
+invalid trajectory_variant_id  = "{latent_scene_id}:invalid:{judgment_seed:016x}"
+judgment_pair_id               = "{latent_scene_id}:pair:{judgment_seed:016x}"
+
+appearance_spec_id             = "{latent_scene_id}:appearance:{render_seed:016x}"
+render_variant_id              = "{trajectory_variant_id}:render:{render_seed:016x}"
+```
+
+同一个 Judgment good/bad pair 可以具有不同 `render_variant_id`，但必须引用同一个 `appearance_spec_id`。
 
 第二阶段另有：
 
@@ -3387,13 +4148,286 @@ canonical schema 不再使用含义重叠的 `scene_id`、`base_scene_id`、`pai
 source_scene_id
 ```
 
+## 42.2 Split integrity
+
 普通 train/val/test split 的单位：
 
 $$
 \boxed{\text{latent base scene}}.
 $$
 
-同一 latent scene 的 semantic skins、texture variants、Judgment good/bad pair、普通 counterfactual variants 不得跨 split。
+`split` 首先赋给 `latent_scene_id`，然后所有：
+
+- trajectory variants；
+- semantic skins；
+- texture variants；
+- Judgment good/bad pair；
+-普通 counterfactual variants；
+
+继承同一个 split。
+
+它们不得跨 split。
+
+same-latent paired-render invariance 是显式例外实验，但不能冒充 held-out generalization。
+
+## 42.3 Dataset Index：完整数据集的事实来源
+
+Renderer 完成后，磁盘上的“完整数据集”不应等价于某一个 task 的训练文件，而应由：
+
+> **视频文件 + canonical metadata tables / Dataset Index**
+
+组成。
+
+推荐目录：
+
+```text
+dataset_root/
+├── videos/
+│   ├── canonical/
+│   ├── billiards/
+│   ├── air_hockey/
+│   └── tabletop/
+│
+├── index/
+│   ├── latent_scenes.parquet
+│   ├── trajectories.parquet
+│   ├── contact_classification.parquet
+│   ├── judgment_pairs.parquet
+│   ├── appearances.parquet
+│   ├── renders.parquet
+│   └── splits.parquet
+│
+└── manifests/
+```
+
+Canonical storage 推荐使用 **Parquet**：
+
+- typed schema；
+- 数组/数值字段更稳定；
+- 读取高效；
+- 便于后续 DataFrame analysis。
+
+可以额外导出 JSONL 作为 human-readable / debugging 版本，但 JSONL 不作为唯一 canonical source。
+
+## 42.4 `TaskManifestBuilder` 的职责
+
+`TaskManifestBuilder` 从 Dataset Index 中生成轻量 task-level manifests。
+
+它负责：
+
+1. 根据 task eligibility 过滤 scene；
+2. 继承 latent-scene split；
+3. 选择 render regime / family；
+4. 按实验需求做 label / family / style balancing；
+5. 投影出该任务实际需要的 target fields；
+6. 指定 observation / target frame semantics；
+7. 输出 Parquet manifest；
+8. 可选输出 JSONL mirror。
+
+它**绝不**：
+
+- 重算 collision；
+- 重算 TTC；
+- 从视频像素估 label；
+- 修改 validity；
+- 重新 render；
+- 把 rejected scene 重新解释成 negative。
+
+## 42.5 Common manifest fields
+
+所有 task manifest 至少包含：
+
+```text
+sample_id
+latent_scene_id
+trajectory_variant_id
+render_variant_id
+appearance_spec_id
+video_path
+split
+render_regime
+render_family
+
+observation_start_frame
+observation_end_frame
+context_frame_indices
+future_frame_indices
+```
+
+其中 frame range 是 benchmark 语义定义，不代表模型最终一定直接读取相同数量的 RGB frame。
+
+## 42.6 State manifest
+
+State sample 默认引用 Context：
+
+```text
+observation_start_frame = 0
+observation_end_frame   = 7
+```
+
+额外 target：
+
+```text
+p_context_xy
+velocity_xy
+speed_px_per_s
+speed_cells_per_s
+velocity_angle_rad
+barrier_axis_angle_rad
+barrier_center_xy
+```
+
+主实验可以只从 manifest 中选择核心 State fields，不需要重新生成 manifest 文件结构。
+
+## 42.7 Contact manifest
+
+只包含：
+
+```text
+status ∈ {positive, negative}
+```
+
+Rejected scene 永远不进入 Contact manifest。
+
+输入语义：
+
+```text
+Context frames 0–7
+```
+
+Target：
+
+```text
+contact_binary
+```
+
+主训练 manifest 目标：
+
+$$
+P(y=1)\approx P(y=0)\approx0.5.
+$$
+
+## 42.8 Collision Dynamics manifest
+
+只从：
+
+```text
+status = positive
+accepted_for_dynamics = true
+```
+
+生成。
+
+输入语义：
+
+```text
+Context frames 0–7
+```
+
+Target fields：
+
+```text
+ttc_from_context_s
+surface_contact_point_xy
+post_velocity_xy
+post_speed_px_per_s
+post_speed_cells_per_s
+post_velocity_angle_rad
+```
+
+## 42.9 Judgment manifest
+
+输入语义：
+
+```text
+full video frames 0–23
+```
+
+每个 matched pair 生成：
+
+- 1 valid row；
+- 1 invalid row。
+
+字段至少：
+
+```text
+judgment_pair_id
+validity_binary
+angular_violation_deg
+angular_violation_rad
+normalized_violation_severity
+violation_sign
+```
+
+good / bad 两行必须引用同一 `appearance_spec_id`。
+
+主 Judgment manifest：
+
+$$
+\boxed{valid:invalid=1:1}.
+$$
+
+## 42.10 Diverse pooled manifest
+
+Broad pooled-Diverse 主实验中，目标 family balance：
+
+$$
+\boxed{
+\text{billiards}:
+\text{air\_hockey}:
+\text{tabletop}
+\approx1:1:1
+}.
+$$
+
+同时检查：
+
+- ball color ID；
+- surface style ID；
+- barrier material ID；
+- outside background ID；
+
+在 physical labels 间没有明显相关性。
+
+`TaskManifestBuilder` 可以通过 stratified selection 对这些 render nuisance 做近似平衡，而不修改底层视频或 physics metadata。
+
+## 42.11 Paired-render invariance manifest
+
+若研究同一 latent physics 在不同 semantic skin 中的 representation invariance，可生成显式 paired manifest：
+
+```text
+same latent_scene_id
+same trajectory_variant_id
+multiple render_variant_id
+render_family ∈ {billiards, air_hockey, tabletop}
+```
+
+该 manifest 属于：
+
+$$
+\boxed{\text{controlled invariance analysis}}
+$$
+
+而不是 held-out-domain generalization。
+
+## 42.12 Task manifest 应可重复生成，而不重新 render
+
+这是引入 TaskManifestBuilder 的核心工程价值。
+
+例如以后决定：
+
+- speed probe 只用某个 speed range；
+- Judgment 只分析 $\Delta\theta>20^\circ$；
+- Tabletop 完全 held out；
+- Canonical 只用于 mechanistic subset；
+
+只需要重新构建 manifest，不需要重新模拟或渲染视频。
+
+因此：
+
+> **底层 dataset construction 与上层 experiment definition 必须彻底解耦。**
+
+## 42.13 Versioning 与可重放性
 
 保存：
 
@@ -3402,16 +4436,23 @@ dataset_version
 config_hash
 simulator_version
 renderer_version
+asset_bank_version
 scene_seed
 proposal_index
 proposal_mode
 render_seed
 judgment_seed
+manifest_version
+manifest_config_hash
 ```
 
 只要 config + code version + seed 相同，应完整 replay。
 
 改变会影响 latent distribution / qualification / violation distribution 的规则，必须新建 dataset version。
+
+只改变视觉资产或 RenderSpec sampling，应更新 renderer / asset-bank version。
+
+只改变 task selection / balancing，应更新 manifest version，而不必重新生成 physics dataset。
 
 ---
 
@@ -3469,9 +4510,22 @@ judgment_seed
 主要仍允许在 pilot 后修改：
 
 - speed range；
-- render texture asset 数量；
-- lighting nuisance 幅度；
-- 具体 semantic skin asset。
+- 各 family asset preset 的具体 RGB 微调；
+- procedural texture 的极弱 amplitude；
+- Diverse 全局 brightness / gamma jitter 的窄范围；
+- asset bank 数量是否在默认 4/2/5/3/3 基础上扩充。
+
+但以下 renderer 原则已经冻结：
+
+- Canonical appearance 固定；
+- Diverse 使用 discrete preset + small jitter；
+- ball 为纯色、无方向纹理；
+- barrier 通过 footprint 内 bolt / bevel 暗示固定；
+- support 不得突出 barrier footprint；
+- 不使用 directional cast shadow；
+- 不使用生成式 AI 图片作为核心 asset source；
+- 所有静态 texture 在视频内固定；
+- Judgment good/bad 必须共享同一 appearance spec。
 
 以下不再视为 pilot 未定项：
 
@@ -3520,7 +4574,11 @@ judgment_seed
 ## Rendering
 
 - 不使用纯白 PPT-like diagram 作为唯一主 domain；
-- 不使用需要真实 3D rolling 才合理的复杂 billiard texture 作为核心 skin。
+- 不使用需要真实 3D rolling 才合理的复杂 billiard texture 作为核心 skin；
+- 不使用生成式 AI background 作为 v1 核心资产；
+- 不使用 directional cast shadow；
+- 不使用 strong perspective / floor-grid texture；
+- 不做强 domain randomization 或 photorealistic lighting。
 
 ---
 
@@ -3773,15 +4831,43 @@ $$
 - [ ] seeds / version hashes；
 - [ ] complete replay possible。
 
-## Renderer
+## Renderer / Visual Asset Bank
 
 - [ ] 448×448 output；
 - [ ] 15×11 visual table；
 - [ ] 14×10 Physics ROI only exists in latent geometry, not drawn as an artificial box；
+- [ ] Canonical = fixed neutral puck-table appearance；
+- [ ] Diverse = billiards / air_hockey / tabletop；
+- [ ] diverse style sampling = discrete preset + small continuous jitter；
+- [ ] ball = solid-color, axisymmetric, no orientation texture；
+- [ ] ball palette avoids low contrast with family surface；
+- [ ] barrier silhouette exactly matches rectangle footprint；
+- [ ] barrier fixed cue uses only internal bevel + 4 symmetric bolts；
 - [ ] support entirely inside barrier footprint；
-- [ ] no canonical motion blur；
+- [ ] no motion blur；
+- [ ] no directional light / cast shadow；
+- [ ] no per-frame texture flicker；
+- [ ] outside-table background low-texture / low-saturation；
+- [ ] procedural assets only for v1 core；
+- [ ] all appearance parameters serialized in `AppearanceSpec`；
 - [ ] semantic skin independent of physics validity；
+- [ ] Judgment good/bad share same `appearance_spec_id`；
 - [ ] Judgment invalid created from latent trajectory and fully rerendered, never pixel-edited。
+
+## Dataset Index / TaskManifestBuilder
+
+- [ ] latent-scene split assigned before task manifests；
+- [ ] all render / judgment variants inherit latent-scene split；
+- [ ] canonical index tables stored in Parquet；
+- [ ] task manifests reference video paths, do not duplicate videos by default；
+- [ ] State manifest uses Context semantics；
+- [ ] Contact manifest contains only positive / negative, never reject；
+- [ ] Dynamics manifest contains only accepted positives；
+- [ ] Judgment manifest uses full video and matched 1:1 valid/invalid pairs；
+- [ ] pooled Diverse family ratio approximately 1:1:1；
+- [ ] style / color / material IDs checked for label correlation；
+- [ ] manifest rebuild does not rerun simulator or renderer；
+- [ ] manifest_version + manifest_config_hash saved。
 
 ## Qualification before foundation-model experiments
 
