@@ -272,7 +272,7 @@ $$
 
 位置 $p_c$、barrier center 与 relative geometry 保留为 auxiliary State / oracle variables。
 
-signed barrier normal 不再是主 State target；具体 collision event 的 `contact_normal` 是 simulator 派生量。
+signed barrier normal 不再是主 State target；具体 collision event 的 `contact_normal_xy` 是 simulator 派生量。
 
 ### Open Question C2 — Prediction target 最终集合
 

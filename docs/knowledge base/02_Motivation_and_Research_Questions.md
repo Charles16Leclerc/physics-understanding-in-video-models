@@ -79,7 +79,7 @@ $$
 
 位置 $p_c$、barrier center 与 relative geometry 等 simulator ground-truth 变量作为辅助 State / oracle quantities 保留。
 
-其中 barrier 的主视觉 State concept 是无向长轴角 $\phi$，而不是 signed normal；实际 collision 的 `contact_normal` 是由 simulator 根据具体接触 face 派生的事件量。
+其中 barrier 的主视觉 State concept 是无向长轴角 $\phi$，而不是 signed normal；实际 collision 的 `contact_normal_xy` 是由 simulator 根据具体接触 face 派生的事件量。
 
 这些量最接近视觉模型从 Context 中应当形成的 current physical-state representation。
 

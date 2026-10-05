@@ -634,7 +634,7 @@ Mechanistic interpretability 是否应该导出直接 performance improvement？
 > 可信、非平凡的模型内部科学发现本身可以成为顶会贡献。
 
 
-## Benchmark v1 收敛：从模糊 Ball–Barrier 场景到可执行规格
+## 20. Benchmark v1 收敛：从模糊 Ball–Barrier 场景到可执行规格
 
 ### Date
 
@@ -724,3 +724,37 @@ $$
 ### Status
 
 **Current.**
+
+---
+
+## 21. Simulator implementation contract 冻结
+
+### Date
+
+2026-10-05
+
+### Remaining Ambiguity
+
+Benchmark 几何和任务定义已基本收敛，但直接实现时仍有几类容易造成数据集不可复现或不同模块解释不一致的细节：
+
+- 参数范围没有同时规定 proposal distribution；
+- 并行生成时随机流的派生方式未冻结；
+- 数值边界、碰撞恰落在 frame timestamp 时的状态语义未统一；
+- `contact_normal_xy` 的符号和 $p_T$ 的含义未完全显式；
+- scene / trajectory / render / pair identifier 与 Contact label 存在多组旧别名。
+
+### Current Decision
+
+- v1 默认使用独立均匀 proposal prior：speed 在配置区间均匀，velocity angle 在 $[0,2\pi)$ 均匀，barrier axis angle 在 $[0,\pi)$ 均匀，context-end ball center 在合法中心区域均匀，barrier center 在给定 orientation 后的 feasible rectangle 内均匀；
+- rejection sampling 只负责去除不合格 proposal，不把 acceptance 后的经验分布误称为均匀分布；任何 guided sampler 必须使用独立的 `proposal_mode` 并记录 provenance；
+- NumPy `PCG64 + SeedSequence` 为 v1 RNG contract，每个 proposal 的随机流由 `(scene_seed, proposal_index, proposal_mode)` 派生；
+- 核心几何使用 `float64`，默认 `spatial_epsilon_px=1e-9`、`time_epsilon_s=1e-12`、`angle_epsilon_rad=1e-12`；epsilon 邻域内的 threshold case reject 为 `numerical_boundary_ambiguous`；
+- $p_T$ 固定表示未渲染的闭区间右端点 $p(1.0\,\mathrm{s})$，用于完整 ROI safety check；视频采样时刻仍为 $k/24,\ k=0,\ldots,23$；
+- 位置在碰撞时连续；恰好位于碰撞时刻的 sampled velocity 使用 right-continuous post-collision value，event record 同时保存 pre/post velocity；
+- `contact_normal_xy` 从 active face 指向 pre-contact ball center 所在的外部半平面，因此 $v^-\!\cdot n<0$、$v^+\!\cdot n>0$；
+- canonical angle range、字段名与 ID namespace 以 05 为唯一规范：`latent_scene_id`、`trajectory_variant_id`、`render_variant_id`、`judgment_pair_id`；Contact label 使用 `contact_binary`，不再保留含义重叠的旧别名；
+- `motion_blur` 属于 rendering config，不能进入 `PhysicsConfig`。
+
+### Status
+
+**Current.** 这些约定属于 dataset-versioned implementation contract；未来改动必须更新 config hash，并视影响提升 dataset version。

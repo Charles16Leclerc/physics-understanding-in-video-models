@@ -131,6 +131,16 @@ $$
 
 metadata 中优先保存 world coordinate；若模型训练需要 normalized coordinate，再由 task loader 派生。
 
+角度的 canonical 序列化规约固定为：
+
+```text
+velocity_angle_rad ∈ [0, 2π)
+post_velocity_angle_rad ∈ [0, 2π)
+barrier_axis_angle_rad ∈ [0, π)
+```
+
+在当前 $x$ 向右、$y$ 向上的 world coordinate 中，正角度方向为逆时针。所有 `atan2` 结果必须先 wrap 到上述 canonical interval，再写入 metadata。
+
 ---
 
 # 2. Visual Table 与 Physics ROI
@@ -301,7 +311,19 @@ $$
   n_c=(-\sin\phi,\cos\phi).
   $$
 
-实际 collision event 的 `contact_normal` 根据接触的具体 long face 派生，可以是 $\pm n_c$。
+实际 collision event 的 `contact_normal_xy` 根据接触的具体 long face 派生，可以是 $\pm n_c$。其符号统一定义为：
+
+> **从 barrier active face 指向碰撞前 ball center 所在的外部半平面。**
+
+因此 clean incoming / outgoing 必须满足：
+
+$$
+v^-\cdot n_{contact}<0,
+\qquad
+v^+\cdot n_{contact}>0.
+$$
+
+反射公式对 $n$ 与 $-n$ 等价，但这一固定符号规约用于保证 `contact_face_id`、不穿墙检查与 metadata replay 的唯一性。
 
 ### State 语义
 
@@ -393,6 +415,14 @@ Canonical renderer 在这些时刻绘制 sharp instantaneous frame。
 
 v1 Canonical **不加 motion blur**，避免 blur length 成为单帧 speed shortcut。
 
+虽然最后一个渲染时刻为 $23/24$ s，simulator 仍定义：
+
+$$
+\boxed{p_T:=p(1.0\text{s})}.
+$$
+
+$p_T$ 是用于连续轨迹 ROI safety check 的未渲染右端点。因此 clip 观测区间仍是 $[0,1)$，但边界验证使用其闭包 $[0,1]$。
+
 ## 5.3 Context / Future
 
 固定：
@@ -436,6 +466,14 @@ $$
 $$
 
 若 event 恰好发生在 $t=k/24$，归属 frame $k$。
+
+Ball position 在 collision time 连续，velocity 不连续。对逐帧 `velocity_xy[frame]` 和通用 `state_at(t)`，固定采用 **right-continuous** 规约：
+
+```text
+state_at(t_collision).velocity_xy = post_collision_velocity_xy
+```
+
+`CollisionEvent` 必须另行保存 `pre_collision_velocity_xy` 与 `post_collision_velocity_xy`。由于 renderer 在事件时刻只根据连续 position 绘制物体，这一规约不会破坏 Judgment good / bad 在 collision frame 的像素一致性。
 
 ## 5.5 Positive collision temporal window
 
@@ -482,7 +520,107 @@ $$
 - 向后解析积分到 $t=0$ 构造 Context；
 - 向前解析积分到 $t=1$ 构造 Future。
 
-## 6.2 Speed 必须随机
+## 6.2 v1 默认 Proposal Prior
+
+在给定各变量可行范围后，v1 纯 latent pilot 的默认 proposal prior 采用独立均匀采样：
+
+$$
+\boxed{
+s\sim U(s_{min},s_{max})
+}
+$$
+
+$$
+\boxed{
+\theta_v\sim U[0,2\pi)
+}
+$$
+
+$$
+\boxed{
+\phi\sim U[0,\pi)
+}
+$$
+
+$$
+\boxed{
+p_c\sim U(R_{center})
+}
+$$
+
+Barrier orientation $\phi$ 采样后，barrier center 在该 orientation 的可行中心矩形内均匀采样。设：
+
+$$
+a=L/2,
+\qquad
+h=w/2,
+$$
+
+则 rotated barrier 在 world $x/y$ 方向的 half extent 为：
+
+$$
+e_x(\phi)=a|\cos\phi|+h|\sin\phi|,
+$$
+
+$$
+e_y(\phi)=a|\sin\phi|+h|\cos\phi|.
+$$
+
+因此：
+
+$$
+\boxed{
+b_x\sim U(-196+e_x,\ 196-e_x)
+}
+$$
+
+$$
+\boxed{
+b_y\sim U(-140+e_y,\ 140-e_y)
+}
+$$
+
+实现时两个坐标在该可行矩形内条件独立均匀采样。由于 Physics ROI 对边界采用 strict-inside 规则，数值上落入 boundary epsilon 的 proposal 仍标记为 ambiguous 并 reject。
+
+默认：
+
+```text
+proposal_mode = "independent_uniform"
+```
+
+该 proposal mode 不预先指定 positive / negative label；所有 label 只能由解析几何、simulation 与 AcceptanceClassifier 决定。
+
+若为了提高 positive acceptance 而加入 `positive_guided` / `negative_guided` proposal，必须：
+
+- 显式保存 `proposal_mode`；
+- 使用独立 seed stream；
+- 仍通过同一 AcceptanceClassifier；
+- 不把 proposal intent 当作 label；
+- 在最终 dataset 中做 marginal diagnostics / matching。
+
+随机数默认使用 NumPy `PCG64` + `SeedSequence`。`scene_seed` 与 `proposal_index` 必须是 $[0,2^{64})$ 内的非负整数。proposal mode 的整数编码冻结为：
+
+```text
+independent_uniform = 0
+positive_guided    = 1
+negative_guided    = 2
+```
+
+reference RNG construction 固定为：
+
+```python
+mode_code = PROPOSAL_MODE_CODE[proposal_mode]
+seed_sequence = np.random.SeedSequence(
+    [scene_seed, proposal_index, mode_code]
+)
+rng = np.random.Generator(np.random.PCG64(seed_sequence))
+```
+
+后续新增 proposal mode 必须追加新的、永不复用的整数编码。这样每个 `(scene_seed, proposal_index, proposal_mode)` 派生独立 RNG stream，保证串行与并行生成得到相同 latent proposal。
+
+v1 simulator 必须实现且默认只启用 `independent_uniform`。`positive_guided` 与 `negative_guided` 的 code 仅为未来保留；在其 proposal algorithm 另行版本化前，传入这两个 mode 必须显式报 unsupported error，不能静默回退。
+
+## 6.3 Speed 必须随机
 
 固定 speed 会削弱 speed probe，并造成固定 displacement shortcut，因此 speed 必须连续采样。
 
@@ -539,7 +677,7 @@ C: 5.0–9.0 cells/s   # 仅作对照，重点检查方向性 rejection bias
 4. collision incidence angle 足够多样；
 5. spatial distribution 不集中到桌面长轴两端。
 
-## 6.3 Ball-center legal region
+## 6.4 Ball-center legal region
 
 由于整个 ball disk 必须在 Physics ROI 内，ball center 合法区域为 ROI erosion by radius $r$：
 
@@ -553,7 +691,7 @@ $$
 357\times245\ \text{px}.
 $$
 
-## 6.4 利用凸性做 trajectory boundary check
+## 6.5 利用凸性做 trajectory boundary check
 
 ### 无碰撞
 
@@ -657,6 +795,7 @@ $$
 first contact 必须分类为：
 
 ```text
+none
 long_face
 short_face
 corner
@@ -664,6 +803,45 @@ ambiguous
 ```
 
 边界无法稳定分类时一律 `ambiguous -> reject`。
+
+`contact_face_id` 的 canonical enum 为：
+
+```text
+long_pos_n
+long_neg_n
+short_pos_t
+short_neg_t
+corner_pos_t_pos_n
+corner_pos_t_neg_n
+corner_neg_t_pos_n
+corner_neg_t_neg_n
+null
+```
+
+其中 `pos_n / neg_n` 相对于 $n_c$，`pos_t / neg_t` 相对于 $t$；`null` 只用于 `none` 或无法唯一归属的 `ambiguous`。normal 定义为：
+
+- `long_pos_n / long_neg_n` 分别取 $+n_c / -n_c$；
+- `short_pos_t / short_neg_t` 分别取 $+t / -t$；
+- corner 与 ambiguous event 不定义 reflection normal，写为 `null`。
+
+所有非空 normal 都指向 pre-contact ball center 所在的 barrier 外部，因此满足统一的 $v^-\cdot n<0$。short / corner event 仅用于 reject diagnostics，不进入 positive dynamics pool。
+
+### 数值边界策略
+
+Simulator 使用 `float64` 做全部连续几何与时间计算，并将数值容差作为 versioned config 的一部分：
+
+```text
+spatial_epsilon_px = 1e-9
+time_epsilon_s = 1e-12
+angle_epsilon_rad = 1e-12
+```
+
+统一规则：
+
+- 距任意 strict threshold / feature boundary 小于或等于对应 epsilon 时，标记 `numerical_boundary_ambiguous`并 reject；
+- 若 event time 距 $k/fps$ 小于或等于 `time_epsilon_s`，先 snap 到精确 $k/fps$，再计算 `floor(fps * t)`；
+- 容差只用于稳定边界分类，不得放宽 $d_1$、$d_2$、10°、ROI 或 collision window 等科学阈值；
+- 任何 epsilon 变更都必须进入 `config_hash` 并触发新 dataset version。
 
 ## 7.3 Endpoint margin
 
@@ -837,8 +1015,10 @@ $$
 可以简写为：
 
 $$
-\boxed{\text{ray-hit / safe no-hit}}.
+\boxed{\text{clean contact positive / strict safe negative}}.
 $$
+
+`ray_hit` 只能作为几何 diagnostic，不能直接等同于 Contact label；所有 wrong-feature、时间窗口不合格和边界不清晰的 ray-hit proposal 都必须 reject。
 
 ## 9.2 “时间不够”绝不算 negative
 
@@ -898,6 +1078,8 @@ render
 
 - velocity 大致朝向 barrier；
 - ball/barrier 距离位于合理范围。
+
+这属于未来可选的 `positive_guided` proposal mode，不是 v1 默认的 `independent_uniform`。启用时必须遵循第 6.2 节的 mode code、独立 RNG stream 与 provenance 规则。
 
 但最终必须检查：
 
@@ -1291,7 +1473,14 @@ alternate-barrier ROI、bad outgoing angle、post trajectory 等 rejection 会�
 
 ## 13.6 Violation sign balancing
 
-若 $+\delta$ 与 $-\delta$ 都合法，等概率选 sign。
+每次先从 $U(5^\circ,90^\circ)$ 采样一个连续 $\delta$，然后分别对 $+\delta$ 与 $-\delta$ 运行完整的：
+
+- bad outgoing geometry check；
+- ROI check；
+- second-collision check；
+- alternate-barrier feasibility check。
+
+若 $+\delta$ 与 $-\delta$ 都合法，在两个符号中等概率选择。
 
 若只有一侧合法，可保留，但最终必须统计：
 
@@ -1300,6 +1489,8 @@ P(\sigma|invalid).
 $$
 
 必要时 balancing，避免“向某一侧偏就是 invalid”的 shortcut。
+
+若两侧都不合法，该 $\delta$ 不使用，继续下一次采样，直到成功或达到 `max_violation_sampling_attempts`。
 
 ## 13.7 Judgment class balance
 
@@ -1333,7 +1524,7 @@ max_violation_sampling_attempts = 128
 
 ---
 
-# 14.1 State targets
+## 14.1 State targets
 
 State 全部锚定在：
 
@@ -1341,15 +1532,15 @@ $$
 t=t_c^-.
 $$
 
-## A. Pre-collision velocity：核心
+### A. Pre-collision velocity：核心
 
-### Cartesian parameterization
+#### Cartesian parameterization
 
 $$
 \boxed{(v_x,v_y)}
 $$
 
-### Polar parameterization
+#### Polar parameterization
 
 $$
 \boxed{s=\|v\|}
@@ -1376,7 +1567,7 @@ Cartesian 与 Polar 都应保留。
 
 中的哪一种表达 motion。
 
-### Direction metric
+#### Direction metric
 
 因为：
 
@@ -1399,7 +1590,7 @@ $$
 
 ---
 
-## B. Barrier direction：核心
+### B. Barrier direction：核心
 
 主 semantic target 定义为：
 
@@ -1417,7 +1608,7 @@ $$
 - normal 的正负选择需要额外 scene-dependent convention；
 - 模型没有理由天然先把 barrier 与小球联合起来，再选“面向球”的 normal。
 
-### Physics normal 仍由 simulator 内部使用
+#### Physics normal 仍由 simulator 内部使用
 
 Simulator 可由 \(\phi\) 导出：
 
@@ -1443,9 +1634,9 @@ $$
 
 ---
 
-## C. Barrier direction 的 parameterization robustness
+### C. Barrier direction 的 parameterization robustness
 
-### 主语义形式：raw axis angle
+#### 主语义形式：raw axis angle
 
 $$
 \phi\in[0,\pi)
@@ -1462,7 +1653,7 @@ d_{\pi}(\hat\phi,\phi)
 ).
 $$
 
-### Topology-correct auxiliary encoding
+#### Topology-correct auxiliary encoding
 
 可以额外 probe：
 
@@ -1482,7 +1673,7 @@ $$
 
 > 这是我们为了处理 target topology 选择的编码，不代表模型“天然存储 double-angle representation”。
 
-### 不把 \(\cos\phi\) 单独作为主 target
+#### 不把 \(\cos\phi\) 单独作为主 target
 
 虽然在 \([0,\pi]\) 上 \(\cos\phi\) 一一对应，但它严重扭曲无向角度几何：
 
@@ -1493,7 +1684,7 @@ $$
 
 ---
 
-## D. Position / geometry：辅助 State
+### D. Position / geometry：辅助 State
 
 保留：
 
@@ -1512,17 +1703,17 @@ $$
 
 ---
 
-## E. Relative Geometry Metadata
+### E. Relative Geometry Metadata
 
 为 GT oracle、debugging、shortcut diagnostics 保存：
 
-### Barrier center relative to ball
+#### Barrier center relative to ball
 
 $$
 \Delta b=b-p_c.
 $$
 
-### Ball in barrier-local frame
+#### Ball in barrier-local frame
 
 $$
 u_c=(p_c-b)\cdot t,
@@ -1532,13 +1723,23 @@ $$
 d_c=(p_c-b)\cdot n_c.
 $$
 
-还建议保存：
+还建议保存以下定义唯一的诊断量：
 
-- nearest long-face normal clearance；
-- nearest endpoint axial clearance；
-- ray minimum distance to barrier；
-- candidate collision time（若存在）；
-- actual first-contact feature type。
+- `signed_center_clearance_to_nearest_long_face_contact_line_px`：
+  $$
+  |d_c|-(w/2+r);
+  $$
+- `endpoint_axial_margin_px`：
+  $$
+  L/2-|u_c|;
+  $$
+- `center_ray_min_distance_to_rectangle_px`：context-end ball-center infinite ray 到 closed physical barrier rectangle 的最小 Euclidean distance；
+- `ball_surface_ray_min_clearance_to_rectangle_px`：
+  $$
+  \text{center-ray distance}-r;
+  $$
+- `candidate_collision_time_s`（若存在）；
+- `actual_first_contact_feature`。
 
 这些默认是：
 
@@ -1548,21 +1749,21 @@ $$
 
 ---
 
-# 14.2 Prediction targets
+## 14.2 Prediction targets
 
-## Contact Prediction
+### Contact Prediction
 
 核心 binary：
 
 $$
-\boxed{\text{ray-hit / no-hit}}
+\boxed{\text{clean contact positive / strict safe negative}}
 $$
 
-注意它不再定义为简单 “within observed horizon”。
+注意它不再定义为简单 “within observed horizon”，也不等于未经筛选的 raw ray-intersection flag。`ray_hit` / `true_barrier_collision_exists` 只作为几何诊断字段，不直接等同于 Contact label。
 
 ---
 
-## Collision Dynamics
+### Collision Dynamics
 
 对 positive subset：
 
@@ -1595,7 +1796,7 @@ TTC / contact point 用于验证不同 future quantity 的 layerwise organizatio
 
 ---
 
-# 14.3 Judgment targets
+## 14.3 Judgment targets
 
 Reflection Judgment：
 
@@ -2787,6 +2988,28 @@ Intervention-safe Validation
 On-demand Source Rendering
 ```
 
+## 32.1 Schema 通用序列化规约
+
+- 所有 world-space vector / point 字段使用长度为 2 的 `[x, y]` 数组；内部计算与 Parquet 等 typed storage 使用 `float64`；
+- `_px`、`_s`、`_rad`、`_deg`、`_frame_index` 后缀分别表示 pixel、second、radian、degree 和从 0 开始的整数 frame index；
+- frame-major 数组长度固定为 `num_frames=24`，第 $i$ 项对应 `frame_times_s[i]=i/fps`；
+- enum 使用文档给出的 lowercase snake-case 字符串；boolean 只能序列化为 `true / false`；
+- 不适用或不存在的 optional event 字段写为 `null`，禁止用 `NaN`、`Inf`、空数组或 magic number；
+- 同一 config + code version + seeds 必须逐字段 deterministic replay，包括 identifier。
+
+v1 identifier 的 reference encoding 固定为：
+
+```text
+latent_scene_id = "ls-{scene_seed:016x}-{mode_code:02x}-{proposal_index:016x}"
+
+physical trajectory_variant_id = "{latent_scene_id}:physical"
+invalid trajectory_variant_id  = "{latent_scene_id}:invalid:{judgment_seed:016x}"
+judgment_pair_id               = "{latent_scene_id}:pair:{judgment_seed:016x}"
+render_variant_id              = "{trajectory_variant_id}:render:{render_seed:016x}"
+```
+
+`scene_seed`、`proposal_index`、`judgment_seed`、`render_seed` 均为 unsigned 64-bit integer；同一个 `(scene_seed, proposal_mode)` 下 `proposal_index` 不得重复。identifier 在单个 dataset version 内唯一；跨版本的全局 key 为 `(dataset_version, identifier)`。
+
 ---
 
 # 33. `PhysicsConfig`
@@ -2825,16 +3048,27 @@ min_bad_outgoing_angle_deg: 10
 speed_min_cells_per_s: 5.0
 speed_max_cells_per_s: 8.5
 
+proposal_mode: independent_uniform
+speed_distribution: uniform_range
+velocity_angle_distribution: uniform_0_2pi
+barrier_axis_angle_distribution: uniform_0_pi
+p_context_distribution: uniform_ball_center_legal_region
+barrier_center_distribution: uniform_orientation_conditioned_feasible_region
+rng_algorithm: numpy_pcg64_seedsequence
+
 violation_delta_min_deg: 5
 violation_delta_max_deg: 90
 max_violation_sampling_attempts: 128
 
+spatial_epsilon_px: 1.0e-9
+time_epsilon_s: 1.0e-12
+angle_epsilon_rad: 1.0e-12
+
 restitution: 1.0
 friction: 0.0
-motion_blur: false
 ```
 
-其中 speed range 是当前默认 pilot，必须保留 config 能力。
+其中 speed range 是当前默认 pilot，必须保留 config 能力。`motion_blur` 不属于 `PhysicsConfig`，必须放在 `RenderSpec / RenderConfig` 中。
 
 ---
 
@@ -2843,23 +3077,26 @@ motion_blur: false
 至少：
 
 ```text
-scene_id
-seed
-split
+latent_scene_id
+scene_seed
+proposal_index
+proposal_mode
 
 p_context_xy
 speed_px_per_s
 speed_cells_per_s
-velocity_angle_rad
+velocity_angle_rad              # canonical range [0, 2π)
 velocity_xy
 
 barrier_center_xy
-barrier_axis_angle_rad
+barrier_axis_angle_rad          # canonical range [0, π)
 barrier_length_px
 barrier_width_px
 
 ball_radius_px
 ```
+
+`split` 属于 dataset-level record，不是 latent physics 本身的构造字段。`velocity_xy`、`speed_*` 与 `velocity_angle_rad` 虽同时保存，但必须在 schema validation 中检查它们在数值容差内一致。
 
 ---
 
@@ -2868,32 +3105,47 @@ ball_radius_px
 Frame state：
 
 ```text
-frame_times
+trajectory_variant_id
+frame_times_s
 ball_center_xy[frame]
 velocity_xy[frame]
-barrier_vertices
-barrier_tangent
+p_end_at_t1_xy
+barrier_vertices_xy
+barrier_tangent_xy
 ```
+
+`p_end_at_t1_xy` 是 $p(1.0\text{s})$ 的未渲染 safety endpoint。若 frame timestamp 恰好等于 collision time，`velocity_xy[frame]` 采用 post-collision velocity。
 
 Event：
 
 ```text
-first_contact_exists
-first_contact_time
-first_contact_frame
+future_first_contact_exists
+first_contact_time_s
+first_contact_frame_index
 first_contact_feature
 
 contact_face_id
-contact_normal
-ball_center_at_contact
-surface_contact_point
-contact_axis_coordinate
+contact_normal_xy
+ball_center_at_contact_xy
+surface_contact_point_xy
+contact_axis_coordinate_px
 impact_angle_deg
 
-pre_collision_velocity
-post_collision_velocity
-post_collision_angle
+pre_collision_velocity_xy
+post_collision_velocity_xy
+post_collision_angle_rad        # canonical range [0, 2π)
 ```
+
+`contact_normal_xy` 必须按第 4.2 节的规约指向 pre-contact ball center 所在的外部半平面。
+
+`future_first_contact_exists=true` 仅表示 $[t_c,1.0\text{s})$ 内存在真实 first contact。字段 nullability 固定为：
+
+- `long_face / short_face`：全部 event 字段非空；
+- `corner`：time、frame、face ID、ball center、surface point、axis coordinate、pre-velocity 与 feature 非空；normal、impact angle 和 post-collision quantities 为 `null`；
+- `ambiguous`：time、frame、ball center、pre-velocity 与 feature 非空；其余 event 字段为 `null`；
+- `future_first_contact_exists=false`：`first_contact_feature="none"`，其余 event 字段全部为 `null`。
+
+无限射线上的 clip 外候选时间另存为 `candidate_collision_time_s`，不伪装成 clip 内 `CollisionEvent`。
 
 ---
 
@@ -2903,15 +3155,18 @@ post_collision_angle
 
 ```text
 status ∈ {positive, negative, reject}
-contact_label ∈ {1, 0, null}
+contact_binary ∈ {1, 0, null}
 ```
 
 建议额外保存：
 
 ```text
-negative_safe_ray_no_intersection
-true_barrier_collision_exists
-collision_after_video_window
+negative_safe_ray_no_intersection      # infinite center ray 不与 B_safe 相交
+true_barrier_collision_exists          # infinite disk trajectory 与物理 rectangle 的任意 feature 存在 first contact
+legal_long_face_collision_exists       # first contact 为 long-face interior
+collision_in_positive_window           # legal collision frame ∈ [12, 19]
+collision_after_positive_window        # legal collision frame >= 20
+collision_after_clip                   # legal collision time >= 1.0 s
 ```
 
 这样从数据结构上阻止 reject 与 negative 混淆。
@@ -2925,10 +3180,12 @@ collision_after_video_window
 ```text
 accepted_for_contact
 accepted_for_dynamics
-accepted_for_judgment_base
+judgment_base_geometry_eligible
 status
 rejection_reasons[]
 ```
+
+`judgment_base_geometry_eligible` 只表示该 valid base 可以进入 JudgmentPairGenerator。是否在最大采样次数内成功生成 invalid pair，必须由 pair-generation metadata 中独立的 `judgment_pair_generated` 记录。
 
 建议 rejection enum：
 
@@ -2994,7 +3251,8 @@ surface_contact_point_xy
 ball_center_at_contact_xy
 
 post_velocity_xy
-post_speed
+post_speed_px_per_s
+post_speed_cells_per_s
 post_velocity_angle_rad
 ```
 
@@ -3010,13 +3268,27 @@ normalized_violation_severity
 violation_family = "reflection_direction"
 violation_sign
 
-paired_scene_id
-base_scene_id
+latent_scene_id
+judgment_pair_id
+trajectory_variant_id
+paired_trajectory_variant_id
 ```
 
 ---
 
 # 39. `JudgmentVariantMetadata`
+
+Pair-level metadata 先保存：
+
+```text
+judgment_pair_id
+latent_scene_id
+judgment_pair_generated
+valid_trajectory_variant_id
+invalid_trajectory_variant_id
+judgment_seed
+violation_sampling_attempt_count
+```
 
 Invalid variant 额外保存：
 
@@ -3049,9 +3321,12 @@ invalid_second_collision
 barrier_center_minus_ball_xy
 ball_u_in_barrier_frame
 ball_d_in_barrier_frame
-nearest_long_face_clearance
-nearest_endpoint_axis_clearance
-ray_min_distance_to_barrier
+signed_center_clearance_to_nearest_long_face_contact_line_px
+endpoint_axial_margin_px
+center_ray_min_distance_to_rectangle_px
+ball_surface_ray_min_clearance_to_rectangle_px
+candidate_collision_time_s
+actual_first_contact_feature
 ```
 
 这些默认只用于 metadata / oracle / diagnostics。
@@ -3063,7 +3338,7 @@ ray_min_distance_to_barrier
 至少：
 
 ```text
-render_id
+render_variant_id
 render_seed
 render_family
 
@@ -3097,11 +3372,14 @@ Renderer 不负责物理，不允许在 render 后通过 pixel hack 制造 inval
 
 ```text
 latent_scene_id
-    ├── render_variant_id
+    ├── trajectory_variant_id(s)
+    │     └── render_variant_id(s)
     └── judgment_pair_id
-          ├── valid_variant
-          └── invalid_variant
+          ├── valid_trajectory_variant_id   -> trajectory reference
+          └── invalid_trajectory_variant_id -> trajectory reference
 ```
+
+canonical schema 不再使用含义重叠的 `scene_id`、`base_scene_id`、`paired_scene_id` 或 `render_id` 别名。`split` 保存在 dataset-level record，并由 `latent_scene_id` 决定；所有 trajectory / render / Judgment pair 继承该 split。
 
 第二阶段另有：
 
@@ -3125,6 +3403,8 @@ config_hash
 simulator_version
 renderer_version
 scene_seed
+proposal_index
+proposal_mode
 render_seed
 judgment_seed
 ```
@@ -3302,7 +3582,7 @@ $$
 Contact：
 
 $$
-\boxed{\text{ray-hit / no-hit}}
+\boxed{\text{clean contact positive / strict safe negative}}
 $$
 
 Dynamics：
@@ -3395,6 +3675,15 @@ $$
 
 # 48. 给 Simulator / Dataset Generator 的最终 Checklist
 
+## Proposal / RNG
+
+- [ ] default `proposal_mode = independent_uniform`；
+- [ ] speed、velocity angle、barrier axis angle、$p_c$ 按各自合法域均匀采样；
+- [ ] barrier center 在给定 $\phi$ 后的 feasible rectangle 内条件均匀采样；
+- [ ] accepted empirical distribution 与 proposal prior 分开统计；
+- [ ] `PCG64 + SeedSequence` reference construction；
+- [ ] serial / parallel replay identity。
+
 ## Geometry
 
 - [ ] continuous world coordinates；
@@ -3408,6 +3697,14 @@ $$
 - [ ] infinite-ray safety intersection；
 - [ ] strict equality-boundary rejection。
 
+## Numerics
+
+- [ ] all analytic geometry uses `float64`；
+- [ ] spatial / time / angle epsilon 从 versioned config 读取；
+- [ ] epsilon-neighborhood cases → `numerical_boundary_ambiguous`；
+- [ ] near-frame event time 先 snap 再计算 frame index；
+- [ ] epsilon 不放宽任何 scientific threshold。
+
 ## Time
 
 - [ ] 24 fps；
@@ -3417,7 +3714,9 @@ $$
 - [ ] Future 8–23；
 - [ ] $t_c=8/24$；
 - [ ] collision frame = floor($24t$)；
-- [ ] positive collision frame 12–19。
+- [ ] positive collision frame 12–19；
+- [ ] $p_T=p(1.0\text{s})$ 作为未渲染 safety endpoint；
+- [ ] exact-event velocity 使用 right-continuous post-collision value。
 
 ## Trajectory
 
@@ -3468,6 +3767,9 @@ $$
 - [ ] relative geometry；
 - [ ] acceptance report；
 - [ ] rejection reasons；
+- [ ] canonical ID namespace，无旧 alias；
+- [ ] canonical angle wrapping；
+- [ ] vector / time / frame field suffix 与 schema 一致；
 - [ ] seeds / version hashes；
 - [ ] complete replay possible。
 

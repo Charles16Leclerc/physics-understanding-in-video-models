@@ -101,9 +101,13 @@ On-demand Source Rendering
 其中：
 
 - barrier endpoints 为派生量；
-- `contact_normal` 是具体 collision event 的派生量；
+- `contact_normal_xy` 是具体 collision event 的派生量；
 - restitution 在 v1 固定为 $1$，不是采样变量；
 - friction 在 v1 固定为 $0$。
+
+默认 proposal prior 为 [[05_Benchmark_and_Experiment_Design#6.2 v1 默认 Proposal Prior]] 规定的独立均匀采样：speed、velocity angle、barrier axis angle、context-end ball center 分别在各自合法域均匀采样，barrier center 在给定 axis angle 后的 orientation-conditioned feasible rectangle 内均匀采样。任何 guided / conditional sampler 都必须使用不同的 `proposal_mode` 并保存其 provenance。
+
+随机数实现固定为 NumPy `PCG64 + SeedSequence`；每个 proposal 按 05 冻结的 mode-code mapping 与 reference construction，由 `(scene_seed, proposal_index, proposal_mode)` 确定随机流，使并行顺序不改变样本。核心解析几何使用 `float64`，空间、时间和角度边界统一使用 05 中冻结的 epsilon；落在 epsilon 邻域内的 proposal 记为 `numerical_boundary_ambiguous`，不得由容差强行接收。
 
 Simulator 输出：
 
@@ -210,8 +214,14 @@ config_hash
 simulator_version
 renderer_version
 
-scene_id
+latent_scene_id
+trajectory_variant_id
+render_variant_id
+judgment_pair_id
+
 scene_seed
+proposal_index
+proposal_mode
 render_seed
 judgment_seed
 split
@@ -237,38 +247,43 @@ ball_radius_px
 
 注意：
 
-- `barrier_axis_angle` 是主 State geometry；
-- `contact_normal` 不是它的别名；
+- `barrier_axis_angle_rad` 是主 State geometry；
+- `contact_normal_xy` 不是它的别名；
 - barrier endpoints 是由 center / axis / length / width 派生的几何量。
 
 ### Collision / Dynamics event
 
 ```text
-contact_status
-collision_time
-collision_frame
+future_first_contact_exists
+first_contact_time_s
+first_contact_frame_index
 
 first_contact_feature
-contact_normal
-ball_center_at_contact
-surface_contact_point
+contact_face_id
+contact_normal_xy
+ball_center_at_contact_xy
+surface_contact_point_xy
+contact_axis_coordinate_px
 
 impact_angle_deg
 
-pre_collision_velocity
-post_collision_velocity
-post_collision_angle
+pre_collision_velocity_xy
+post_collision_velocity_xy
+post_collision_angle_rad
 ```
 
 ### Contact classification
 
 ```text
 status ∈ {positive, negative, reject}
-contact_label ∈ {1, 0, null}
+contact_binary ∈ {1, 0, null}
 
 negative_safe_ray_no_intersection
 true_barrier_collision_exists
-collision_after_video_window
+legal_long_face_collision_exists
+collision_in_positive_window
+collision_after_positive_window
+collision_after_clip
 ```
 
 ### Judgment
@@ -283,33 +298,50 @@ normalized_violation_severity
 violation_family
 violation_sign
 
-paired_scene_id
-base_scene_id
+latent_scene_id
+judgment_pair_id
+trajectory_variant_id
+paired_trajectory_variant_id
 ```
 
 ### Rendering
 
 ```text
+render_variant_id
+render_seed
 render_family
 surface_style
 object_style
 barrier_style
 lighting_variant
+motion_blur
 ```
+
+`motion_blur` 属于 `RenderSpec / RenderConfig`，不属于 `PhysicsConfig`；v1 固定为 `false`。
 
 ### Acceptance provenance
 
 ```text
 accepted_for_contact
 accepted_for_dynamics
-accepted_for_judgment_base
+judgment_base_geometry_eligible
 rejection_reasons[]
+```
+
+Judgment pair-generation metadata 另存：
+
+```text
+judgment_pair_generated
+valid_trajectory_variant_id
+invalid_trajectory_variant_id
+violation_sampling_attempt_count
 ```
 
 关键原则：
 
 - physics metadata 与 render metadata 分开；
 - positive / negative / reject 三态必须显式保存；
+- `scene_id`、`base_scene_id`、`paired_scene_id`、`render_id` 不作为 canonical alias 使用；
 - same latent base scene 的不同 render variant 与 Judgment pair 默认共享同一 train/val/test split；
 - metadata 必须足够完整，使 scene 能够 deterministic replay。
 

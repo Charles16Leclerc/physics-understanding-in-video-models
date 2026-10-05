@@ -80,7 +80,7 @@ State 指模型从已经观察到的视频中形成的、描述当前物理世�
 
 位置 $p_c$、barrier center、relative geometry 等量也完整保存在 simulator ground truth 中，并可作为辅助 State target、GT oracle 或 mechanistic debugging 变量，但不是当前最核心的 headline State quantities。
 
-特别地，barrier 的主 State concept 是 **barrier axis direction $\phi$**，而不是 signed barrier normal。具体 collision event 的 `contact_normal` 是 simulator 根据实际接触 long face 派生的事件量，不应与视觉 State target 混为一谈。
+特别地，barrier 的主 State concept 是 **barrier axis direction $\phi$**，而不是 signed barrier normal。具体 collision event 的 `contact_normal_xy` 是 simulator 根据实际接触 long face 派生的事件量，不应与视觉 State target 混为一谈。
 
 State 是两类模型最自然的共同起点，因为无论模型之后用于预测还是问答，都首先需要从视觉输入中形成某种可用的世界表示。
 

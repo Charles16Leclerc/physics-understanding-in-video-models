@@ -44,7 +44,7 @@ $$
 
 $\phi$ 是视觉 / State 主变量；
 
-`contact_normal` 是 simulator 根据某次具体 long-face collision 派生的有向 event variable。
+`contact_normal_xy` 是 simulator 根据某次具体 long-face collision 派生的有向 event variable。
 
 二者不得在文档或 metadata 中混用。
 
