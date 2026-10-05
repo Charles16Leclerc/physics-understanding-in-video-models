@@ -1,8 +1,10 @@
 ---
 title: Motivation and Research Questions
 status: Current
-updated: 2026-09-12
-tags: [motivation, research-questions]
+updated: 2026-10-05
+tags:
+  - motivation
+  - research-questions
 ---
 
 # 研究动机与科学问题

@@ -1,8 +1,13 @@
 ---
 title: 研究提案总纲
 status: Current
-updated: 2026-09-13
-tags: [overview, proposal, motivation, theory, experiment-design]
+updated: 2026-10-05
+tags:
+  - overview
+  - proposal
+  - motivation
+  - theory
+  - experiment-design
 ---
 
 # 研究提案总纲

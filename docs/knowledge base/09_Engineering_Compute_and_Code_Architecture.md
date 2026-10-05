@@ -1,8 +1,12 @@
 ---
 title: Engineering, Compute, and Code Architecture
 status: Current
-updated: 2026-09-12
-tags: [engineering, compute, code, activations]
+updated: 2026-10-05
+tags:
+  - engineering
+  - compute
+  - code
+  - activations
 ---
 
 # 工程、算力与代码架构

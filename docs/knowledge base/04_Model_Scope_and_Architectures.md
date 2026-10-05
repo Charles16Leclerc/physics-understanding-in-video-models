@@ -1,8 +1,12 @@
 ---
 title: Model Scope and Architectures
 status: Current
-updated: 2026-09-12
-tags: [models, vjepa, vlm, architecture]
+updated: 2026-10-05
+tags:
+  - models
+  - vjepa
+  - vlm
+  - architecture
 ---
 
 # 研究对象、模型与架构

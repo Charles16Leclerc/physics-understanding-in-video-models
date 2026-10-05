@@ -1,8 +1,12 @@
 ---
 title: Theory - State, Prediction, and Judgment
 status: Current
-updated: 2026-09-12
-tags: [theory, state, prediction, judgment]
+updated: 2026-10-05
+tags:
+  - theory
+  - state
+  - prediction
+  - judgment
 ---
 
 # 理论框架：State、Prediction 与 Judgment

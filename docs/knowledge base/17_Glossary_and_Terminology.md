@@ -1,8 +1,10 @@
 ---
 title: Glossary and Terminology
 status: Current
-updated: 2026-09-12
-tags: [glossary, terminology]
+updated: 2026-10-05
+tags:
+  - glossary
+  - terminology
 ---
 
 # 术语表与表述规范

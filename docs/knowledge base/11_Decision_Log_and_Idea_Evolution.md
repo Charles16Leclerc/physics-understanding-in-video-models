@@ -1,8 +1,10 @@
 ---
 title: Decision Log and Idea Evolution
 status: Current
-updated: 2026-09-12
-tags: [decision-log, history]
+updated: 2026-10-05
+tags:
+  - decision-log
+  - history
 ---
 
 # 研究决策日志与想法演化

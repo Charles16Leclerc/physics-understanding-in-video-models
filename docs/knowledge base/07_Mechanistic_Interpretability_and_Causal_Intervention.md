@@ -1,8 +1,12 @@
 ---
 title: Mechanistic Interpretability and Causal Intervention
 status: Current
-updated: 2026-09-12
-tags: [mechanistic-interpretability, causal, patching, intervention]
+updated: 2026-10-05
+tags:
+  - mechanistic-interpretability
+  - causal
+  - patching
+  - intervention
 ---
 
 # Mechanistic Interpretability 与因果干预

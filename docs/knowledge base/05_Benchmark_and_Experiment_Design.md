@@ -1,7 +1,7 @@
 ---
 title: Benchmark and Experiment Design Specification
 status: Current
-updated: 2026-09-23
+updated: 2026-10-05
 tags:
   - benchmark
   - experiment-design

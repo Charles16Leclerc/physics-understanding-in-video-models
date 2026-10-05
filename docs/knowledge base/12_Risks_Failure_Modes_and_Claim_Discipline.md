@@ -1,8 +1,11 @@
 ---
 title: Risks, Failure Modes, and Claim Discipline
 status: Current
-updated: 2026-09-12
-tags: [risks, failure-modes, claims]
+updated: 2026-10-05
+tags:
+  - risks
+  - failure-modes
+  - claims
 ---
 
 # 风险、失败模式与 Claim 纪律

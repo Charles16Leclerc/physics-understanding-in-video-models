@@ -1,8 +1,10 @@
 ---
 title: Experiment Plan and Evaluation
 status: Current
-updated: 2026-09-12
-tags: [experiment-plan, evaluation]
+updated: 2026-10-05
+tags:
+  - experiment-plan
+  - evaluation
 ---
 
 # 实验计划与评测

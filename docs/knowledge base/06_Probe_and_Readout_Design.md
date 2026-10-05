@@ -1,8 +1,13 @@
 ---
 title: Probe and Readout Design
 status: Current
-updated: 2026-09-12
-tags: [probe, readout, pooling, attention, layers]
+updated: 2026-10-05
+tags:
+  - probe
+  - readout
+  - pooling
+  - attention
+  - layers
 ---
 
 # Probe / Readout 设计
