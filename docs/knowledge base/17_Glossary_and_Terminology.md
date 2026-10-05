@@ -9,34 +9,143 @@ tags: [glossary, terminology]
 
 ## 1. Physical State
 
-当前观测世界中可定义的物理状态或几何变量，例如：
+当前观测世界中可定义的物理状态或几何变量。
 
-- position；
-- velocity；
-- heading；
-- barrier normal；
-- contact state。
+在本项目 v1 中，核心 operational State quantities 为：
+
+- Cartesian velocity $(v_x,v_y)$；
+- speed $s$；
+- velocity direction $\theta_v$；
+- barrier axis direction $\phi\in[0,\pi)$。
+
+位置 $p_c$、barrier center 与 relative geometry 作为辅助 State / oracle quantities 保留。
 
 不要把 State 定义成“encoder 必须输出的唯一最小充分统计量”。它是 functional target。
 
+### Barrier axis direction vs contact normal
+
+必须严格区分：
+
+$$
+\boxed{\phi=\text{barrier axis direction}}
+$$
+
+与：
+
+$$
+\boxed{
+n_{\mathrm{contact}}
+=
+\text{event-specific contact normal}
+}
+$$
+
+$\phi$ 是视觉 / State 主变量；
+
+`contact_normal` 是 simulator 根据某次具体 long-face collision 派生的有向 event variable。
+
+二者不得在文档或 metadata 中混用。
+
 ## 2. Physical Prediction
 
-基于当前 state / context 对未来事件或状态的估计，例如：
+基于当前 State / Context 对尚未观察未来关系、事件或状态的估计。
 
-- future contact；
+当前 v1 包括：
+
+### Contact Prediction
+
+clean contact-positive / clean safe-negative 的几何关系判断。
+
+它不是简单的：
+
+> “will collide within observed horizon?”
+
+几何上最终会碰、但碰撞落在合法视频时间窗之外的 proposal 会被 reject，而不是标成 negative。
+
+### Collision Dynamics
+
+对 Contact-positive scene：
+
 - TTC；
-- post-collision velocity。
+- surface contact point；
+- post-collision velocity；
+- post-collision direction。
+
+其中：
+
+$$
+\boxed{\theta_{v^+}}
+$$
+
+是当前最核心 Prediction quantity。
 
 注意：future target 若只是当前 state 的线性变换，不能作为强 prediction-computation 证据。
 
+## 2A. Contact Positive / Negative / Reject
+
+Contact dataset 必须严格区分三种 proposal outcome。
+
+### Positive
+
+进入数据集，label：
+
+```text
+contact = 1
+```
+
+并满足全部 clean long-face collision 条件。
+
+### Negative
+
+进入数据集，label：
+
+```text
+contact = 0
+```
+
+并满足严格的 safe no-hit 条件：context-end ball-center infinite ray 不与 barrier 的 $d_2$ rounded safety region 相交。
+
+### Reject
+
+完全不进入 Contact dataset。
+
+包括但不限于：
+
+- 几何上会碰但时间窗不合法；
+- short-face / corner contact；
+- near miss；
+- near tangent；
+- ambiguous boundary case；
+- ROI violation。
+
+因此：
+
+$$
+\boxed{
+\text{reject}
+\neq
+\text{negative}
+}
+$$
+
 ## 3. Physical Judgment
 
-对已经观察到的动态过程是否符合真实物理规律进行判断，例如：
+对已经观察到的动态过程是否符合真实物理规律进行判断。
 
-- valid / invalid；
-- violation severity。
+当前 v1 operationalization 为：
 
-不预设 Judgment 必须通过显式 Prediction 形成。
+$$
+\boxed{\text{Reflection Consistency Judgment}}
+$$
+
+核心 target：
+
+- binary valid / invalid；
+- continuous angular violation $\Delta\theta$。
+
+Invalid case 只改变 post-collision outgoing direction，同时保持 speed 不变，并排除穿墙、近切线、出界等 trivial artifact。
+
+不预设 Judgment 必须通过显式 Prediction 形成；Prediction 与 Judgment 的内部组织是实验问题。
 
 ## 4. Predictive Video Model
 

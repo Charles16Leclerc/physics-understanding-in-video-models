@@ -57,38 +57,104 @@ $$
 \boxed{\text{Physical Judgment}}.
 $$
 
-、
+
 ## 2.1 Physical State：当前世界是什么状态？
 
-State 指模型从已经观察到的视频中形成的、描述当前物理世界的表示。候选变量包括位置 $p$、速度 $v$、speed、heading、barrier geometry / normal、object / contact state 等。
+State 指模型从已经观察到的视频中形成的、描述当前物理世界的表示。它回答的是：
 
-它回答的是：**What is happening now?**
+> **What is happening now?**
 
-State 是所有模型最自然的共同起点，因为无论模型之后用于预测还是问答，都首先需要从视觉输入中提取某种可用的世界表示。
+在当前 v1 Ball–Barrier benchmark 中，主 State 统一锚定在 Context 结束时刻 $t_c$，即 collision 发生前的 current physical state。最核心的 State target 是：
+
+- pre-collision velocity 的 Cartesian 表示 $(v_x,v_y)$；
+- speed $s=\|v\|$；
+- velocity direction $\theta_v$；
+- barrier 的无向长轴方向 $\phi\in[0,\pi)$。
+
+其中 velocity 同时采用 Cartesian 与 polar parameterization，是为了避免把人为选取的 target coordinates 误认为模型最自然的内部表示形式。
+
+位置 $p_c$、barrier center、relative geometry 等量也完整保存在 simulator ground truth 中，并可作为辅助 State target、GT oracle 或 mechanistic debugging 变量，但不是当前最核心的 headline State quantities。
+
+特别地，barrier 的主 State concept 是 **barrier axis direction $\phi$**，而不是 signed barrier normal。具体 collision event 的 `contact_normal` 是 simulator 根据实际接触 long face 派生的事件量，不应与视觉 State target 混为一谈。
+
+State 是两类模型最自然的共同起点，因为无论模型之后用于预测还是问答，都首先需要从视觉输入中形成某种可用的世界表示。
 
 ## 2.2 Physical Prediction：接下来会发生什么？
 
-Prediction 指模型根据当前状态形成未来事件或未来状态的能力。候选 target 包括是否在 horizon $H$ 内碰撞、time-to-collision $\tau$、post-collision velocity $v^+$、contact point，以及部分 future-position control。
+Prediction 指模型根据 Context 中已经观察到的 State，对尚未观察到的未来关系、事件或状态进行预测。
 
-这里有一个重要限制：主 Prediction task 不能只是当前 state 的简单线性函数。例如
+当前 v1 benchmark 将 Prediction 分成两个层次。
+
+### Contact Prediction
+
+Contact 不再定义为“是否会在有限 horizon 内碰撞”，而定义为一个干净的几何关系问题：
+
+> 如果小球从 Context 结束时的位置沿当前速度方向继续直线运动，它是否属于明确的 barrier-contact trajectory？
+
+最终进入 Contact dataset 的 scene 只有两类：
+
+- **contact positive**：发生满足全部 clean-collision 条件的 long-face collision；
+- **contact negative**：ball-center infinite ray 明确避开 barrier 周围规定的 safety region。
+
+“几何上会碰、只是视频时长不够”“靠得过近但没碰”“short-face / corner 等边界 case”均直接 reject，而不是标成 negative。
+
+### Collision Dynamics
+
+只在 clean contact-positive scene 上定义：
+
+- time-to-collision：
+
+$$
+\tau=t_{\mathrm{collision}}-t_c
+$$
+
+- surface contact point $q_{\mathrm{contact}}$；
+- post-collision Cartesian velocity $(v_x^+,v_y^+)$；
+- post-collision direction $\theta_{v^+}$。
+
+其中：
+
+$$
+\boxed{\theta_{v^+}}
+$$
+
+是当前最核心的 Collision Dynamics Prediction target。
+
+这里有一个重要限制：主 Prediction task 不能只是当前 state 的简单线性函数。例如：
 
 $$
 x_{t+\Delta t}=x_t+v_t\Delta t
 $$
 
-如果 encoder 已经线性表示 $x_t,v_t$，future position 自然也可能线性可读，这并不能证明模型内部真的执行了额外的 prediction computation。因此主 prediction target 应尽量要求：
+如果 encoder 已经线性表示 $x_t,v_t$，future position 自然也可能线性可读，这并不能证明模型内部真的执行了额外的 prediction computation。因此用于强机制结论的 Prediction target 应尽量要求：
 
 $$
 \boxed{\text{non-trivial relational / nonlinear computation}}
 $$
-
 ## 2.3 Physical Judgment：已经发生的事情是否符合物理？
 
-Judgment 指模型对**已经观察到的动态过程**进行物理合理性判断。候选 target 包括 valid / invalid transition、violation severity、violation type，以及少量 counterfactual / causal judgment。
+Judgment 指模型对**已经观察到的动态过程**进行物理合理性判断。它回答的是：
 
-它回答的是：**Should this have happened?**
+> **Should this have happened?**
 
-Judgment 被纳入研究，一方面因为它是检验“模型懂不懂物理”最直观的行为形式之一；另一方面，当前大量视频物理保真度 benchmark 与 evaluator 正是使用 VLM 完成 physical plausibility judgment，因此它具有直接现实意义。
+当前 v1 不研究 heterogeneous “physical invalidity”，而把 Judgment 主任务严格收窄为：
+
+$$
+\boxed{\text{Reflection Consistency Judgment}}
+$$
+
+即：
+
+> observed post-collision direction 是否与 pre-collision velocity 和 visible barrier orientation 所决定的完全弹性反射规律一致？
+
+核心 target 为：
+
+1. binary valid / invalid；
+2. continuous angular violation $\Delta\theta$。
+
+Invalid trajectory 只改变 post-collision outgoing direction，并保持 speed 不变；同时严格排除穿墙、近切线、出界等 trivial violation。
+
+Judgment 不被定义成 universal `State → Prediction → Judgment` 链的最后一步。它仍然是一个独立 functional target；Prediction 与 Judgment 的内部关系要由不同模型架构和 causal experiments 决定。
 
 # 3. 为什么三分法选择不是 arbitrary：它与两类模型的原生功能共同形成
 
@@ -304,7 +370,25 @@ $$
 }
 $$
 
-因为我们有解析 simulator，可以精确计算 $do(n=n_B)$ 或 $do(v=v_B)$ 后的正确反事实结果。这使得 **Interchange Intervention Accuracy** 成为可能。
+因为我们有解析 simulator，可以为 velocity direction 与 barrier axis direction 定义明确的 high-level physical counterfactual，并计算相应的 post-collision direction / reflection-consistency 结果。
+
+但必须严格区分：
+
+$$
+\boxed{
+\text{low-level activation intervention}
+\not\equiv
+do(\text{physical variable})
+}
+$$
+
+模型内部的 velocity / direction representation 可能与 position、trajectory、token location 等变量纠缠，因此不能预先把一次 hidden-state edit 宣称为真正的 $do(v)$ 或 $do(\phi)$。
+
+当前第二阶段真正要检验的是：
+
+> 对与 $\theta_{v^-}$ 或 barrier axis $\phi$ 对齐的 candidate representation 做 intervention 后，模型 downstream 的 post-collision direction 与 Reflection Judgment 是否按照相应的解析 physical counterfactual 系统变化。
+
+只有这种 downstream counterfactual agreement 才能逐步支持 low-level representation 与 high-level physical variable 之间存在 causal alignment。
 
 # 8. 为什么必须自建统一 Benchmark
 
@@ -337,33 +421,73 @@ $$
 - 因果 intervention 有明确高层语义；
 - 而且很重要地，初状态微小改变不会导致结果的巨大改变（反例：Ball-Ball），对模型预测很友好。
 
-# 9. Judgment 的关键：Matched Physical Violations
+# 9. Judgment 的关键：Matched Reflection Violations
 
-Invalid case 不能简单是“向上运动”“特别快”“某种颜色”，否则 probe 会走 shortcut。
+Invalid case 不能简单表现成“特别快”“向某个固定方向运动”“某种颜色”或“直接穿墙”，否则 probe / model 可以依赖 trivial shortcut。
 
-正确反射：
-
-$$
-v^+_{good}=v^--2(v^-\cdot n)n.
-$$
-
-Bad case 使用另一个合法 normal $n'$ 生成：
+对于真实 barrier axis $\phi$ 和 incoming velocity $v^-$，首先解析计算 valid reflection：
 
 $$
-v^+_{bad}=v^--2(v^-\cdot n')n',
+v^+_{\mathrm{valid}}
+=
+v^-
+-
+2(v^-\cdot n)n
 $$
 
-但画面仍显示 $n$。
-
-目标是让单变量 marginals 近似匹配：
+v1 唯一正式 violation operator 是：
 
 $$
-P(v^+|good)\approx P(v^+|bad),\quad
-P(n|good)\approx P(n|bad),\quad
-P(v^-|good)\approx P(v^-|bad),
+\theta^+_{\mathrm{bad}}
+=
+\theta^+_{\mathrm{valid}}
++
+\sigma\delta
 $$
 
-真正错误只存在于 $(v^-,n,v^+)$ 的条件关系中。
+其中：
+
+$$
+\sigma\in\{-1,+1\},
+\qquad
+\delta\sim U(5^\circ,90^\circ)
+$$
+
+同时保持：
+
+$$
+\|v^+_{\mathrm{bad}}\|
+=
+\|v^-\|
+$$
+
+因此 invalidity 只存在于：
+
+$$
+(v^-,\phi,v^+)
+$$
+
+三者之间的 reflection relation，而不是单独某个 state marginal 本身。
+
+为了保证 bad outgoing direction 本身仍属于 benchmark 所覆盖的正常 reflection support，对每个 $\delta$ 额外构造一个 hypothetical alternate barrier：将原 barrier 绕 collision-time ball center 刚体旋转：
+
+$$
+\sigma\frac{\delta}{2}
+$$
+
+由于 barrier orientation 改变 $\alpha$ 会使固定 incoming direction 的 reflection direction 改变 $2\alpha$，这个 alternate barrier 正好能够产生所采样的 bad outgoing direction。
+
+要求这个 hypothetical barrier 仍完整位于 Physics ROI，并继续满足 clean long-face / endpoint-margin 条件。它只作为 physical-support feasibility check，不会出现在实际 invalid video 中；实际画面中的 barrier 始终保持原 orientation $\phi$。
+
+最终还必须显式检查 valid / invalid 的：
+
+$$
+P(v^-),\qquad
+P(\phi),\qquad
+P(v^+)
+$$
+
+以及 speed、collision position、violation sign 等 marginals，避免统计 shortcut。
 
 # 10. 渲染设计：控制语义先验与重力歧义
 

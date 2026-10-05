@@ -78,33 +78,136 @@ tags:
 
 ---
 
-# 1. v1 物理世界：Single Puck + Fixed Finite Barrier
+# 1. 全局空间规格、坐标与物理世界
 
-## 1.1 Core system
+## 1.1 Master frame 与 cell
 
-v1 主系统固定为：
+v1 所有视频统一输出：
 
 $$
-\boxed{\text{single moving puck/ball/disk + one fixed finite-width barrier}}
+\boxed{448\times448}
 $$
 
-底层是二维平面中的刚体质点/圆盘运动。
+RGB frame。
 
-第一版**不做 multi-ball**，原因是：
+定义一个仅用于尺寸描述和跨模型空间尺度对齐的 coarse cell：
 
-- 单球 + barrier 已经足够构造 State、Prediction、Judgment；
-- 可以得到解析 ground truth；
-- 可以构造 matched counterfactual；
-- 可以做 State → Prediction / Judgment causal intervention；
-- multi-ball 会引入额外 object binding；
-- 多次碰撞和长时间 rollout 会增加敏感性与分支；
-- 会模糊第一篇工作真正想研究的内部物理 computation。
+$$
+\boxed{1\ \text{cell}=28\ \text{px}}.
+$$
+
+因此 full frame 为：
+
+$$
+16\times16\ \text{cells}.
+$$
+
+**注意：cell 不是 simulator 的离散网格。** 物理位置、速度、碰撞时刻、contact point 都必须在连续坐标中计算。
+
+## 1.2 Physics world coordinate
+
+Simulator 内统一采用连续二维 world coordinate：
+
+- 原点：448×448 frame 中心；
+- $x$ 轴：向右；
+- $y$ 轴：向上；
+- 长度单位：master-frame pixel。
+
+因此 frame bounds：
+
+$$
+x\in[-224,224],\qquad y\in[-224,224].
+$$
+
+Renderer 转为图像坐标：
+
+$$
+x_{img}=x+224,
+$$
+
+$$
+y_{img}=224-y.
+$$
+
+metadata 中优先保存 world coordinate；若模型训练需要 normalized coordinate，再由 task loader 派生。
 
 ---
 
-## 1.2 Plane dynamics
+# 2. Visual Table 与 Physics ROI
 
-在没有 barrier interaction 时：
+## 2.1 Visual table
+
+Visual table 固定为：
+
+$$
+\boxed{15\times11\ \text{cells}=420\times308\ \text{px}}.
+$$
+
+居中放置，因此：
+
+$$
+x\in[-210,210],
+$$
+
+$$
+y\in[-154,154].
+$$
+
+桌边只承担**俯视水平桌面**的视觉语义，不参与 v1 物理碰撞。
+
+## 2.2 Physics ROI
+
+固定物理硬边界：
+
+$$
+\boxed{14\times10\ \text{cells}=392\times280\ \text{px}}.
+$$
+
+居中：
+
+$$
+\boxed{x\in[-196,196],\qquad y\in[-140,140].}
+$$
+
+Physics ROI 与 visual table 四周各留 14 px 视觉缓冲。
+
+### 关键定义
+
+Physics ROI 不是仅用于 proposal 的松散范围，而是：
+
+> **所有真实物理几何体与整段真实轨迹都必须完全包含在其中。**
+
+因此：
+
+- barrier 整个矩形必须完全位于 Physics ROI；
+- ball 整个圆盘在所有时刻必须完全位于 Physics ROI；
+- valid Judgment trajectory 必须满足；
+- invalid Judgment trajectory 也必须满足；
+- 第二阶段 source / counterfactual 若称为 intervention-safe，也必须满足。
+
+---
+
+# 3. v1 物理系统：Single Puck + Fixed Finite Barrier
+
+## 3.1 Core system
+
+v1 固定为：
+
+$$
+\boxed{\text{single moving puck/ball/disk + one fixed finite-width barrier}}.
+$$
+
+不加入：
+
+- multi-ball；
+- table-edge bounce；
+- pocket / goal；
+- multi-collision long rollout；
+- 3D rigid-body dynamics。
+
+## 3.2 Free motion
+
+无 barrier interaction 时：
 
 $$
 p(t+\Delta t)=p(t)+v\Delta t,
@@ -114,348 +217,259 @@ $$
 v(t+\Delta t)=v(t).
 $$
 
-第一版：
+v1 不考虑：
 
-- 不考虑平面内重力；
-- 不考虑摩擦；
-- 不考虑空气阻力；
-- 不考虑球自旋；
-- 不考虑滚动阻力；
-- 不考虑速度自然衰减。
+- 平面内重力；
+- 摩擦；
+- 空气阻力；
+- rolling resistance；
+- spin；
+- 自然减速。
 
-视觉语义上，场景应明确是**水平平面俯拍**，避免模型把图像理解为竖直平面并期待 image-plane gravity。
+所以 pre-contact motion 是严格匀速直线运动。
 
----
+## 3.3 完全弹性碰撞
 
-## 1.3 完全弹性碰撞
-
-第一版固定：
+固定：
 
 $$
 \boxed{e=1}.
 $$
 
-固定 barrier 的理想完全弹性反射：
+对具体 long-face contact 的有向单位法向 $n$：
 
 $$
-v^+=v^- -2(v^-\cdot n)n,
+v^+=v^- -2(v^-\cdot n)n.
 $$
 
-其中 \(n\) 是**实际接触 long face** 对应的单位法向量。
-
-于是：
+因此：
 
 $$
-\|v^+\|=\|v^-\|.
+\boxed{\|v^+\|=\|v^-\|}.
 $$
 
-### 为什么固定完全弹性
-
-不在 v1 中随机 restitution coefficient，原因是：
-
-- 从视觉中通常无法唯一知道材料对应的 \(e\)；
-- 如果模型预测不同 \(e\)，很难判断是“物理推理错了”还是“材料参数不可辨识”；
-- 本项目 v1 更关注**几何碰撞规律**，而不是材料参数估计；
-- post-collision speed 因此不是核心 Prediction target，也不作为 Judgment violation 主线。
+第一版不随机 restitution coefficient。原因是材料对应的 $e$ 从普通视觉中不可可靠辨识；v1 只研究几何反射规律。
 
 ---
 
-# 2. Barrier 的物理与视觉定义
+# 4. Ball 与 Barrier 几何
 
-## 2.1 Barrier 是 finite-width rectangular rail
+## 4.1 Moving object
 
-物理几何上，barrier 应定义为具有：
+球/圆盘直径固定：
 
-- center \(b=(b_x,b_y)\)；
-- length \(L\)；
-- width \(w\)；
-- long-axis orientation \(\phi\)；
+$$
+\boxed{d_{ball}=35\ \text{px}=1.25\ \text{cells}}.
+$$
 
-的矩形固定障碍物。
+半径：
 
-其中：
+$$
+\boxed{r=17.5\ \text{px}=0.625\ \text{cell}}.
+$$
+
+相对 full frame：
+
+$$
+35/448\approx7.81\%.
+$$
+
+这与既有 controlled physics probing 场景的 object scale 接近，并兼顾 spatial diversity 与 motion visibility。
+
+## 4.2 Barrier
+
+固定：
+
+$$
+\boxed{L=140\ \text{px}=5\ \text{cells}},
+$$
+
+$$
+\boxed{w=28\ \text{px}=1\ \text{cell}}.
+$$
+
+定义：
+
+- center $b=(b_x,b_y)$；
+- long-axis angle $\phi\in[0,\pi)$；
+- tangent：
+  $$
+  t=(\cos\phi,\sin\phi);
+  $$
+- canonical normal：
+  $$
+  n_c=(-\sin\phi,\cos\phi).
+  $$
+
+实际 collision event 的 `contact_normal` 根据接触的具体 long face 派生，可以是 $\pm n_c$。
+
+### State 语义
+
+State 主 target 是：
 
 $$
 \boxed{\phi\in[0,\pi)}
 $$
 
-描述 barrier **长轴本身的无向方向**。
+即 barrier 的无向长轴方向，而不是 signed normal。
 
-例如：
+## 4.3 Barrier 必须完整位于 Physics ROI
 
-- \(0^\circ\)：水平；
-- \(90^\circ\)：竖直；
-- \(0^\circ\) 与 \(180^\circ\) 是同一方向。
+四顶点：
+
+$$
+b\pm\frac L2t\pm\frac w2n_c.
+$$
+
+要求四个顶点都**严格**位于 Physics ROI 内。
+
+等号边界一律视为 ambiguous / too-close，reject。
+
+## 4.4 只有 long faces 是 v1 合法碰撞面
+
+v1 只允许：
+
+$$
+\boxed{\text{clean long-face collision}}.
+$$
+
+以下全部 reject：
+
+- short-face first contact；
+- corner first contact；
+- simultaneous/ambiguous feature contact；
+- endpoint-near contact；
+- near-tangent contact。
+
+## 4.5 Support / Clamp
+
+v1 所有螺丝、clamp、support、固定脚必须：
+
+$$
+\boxed{\text{完全包含在 barrier rectangle footprint 内}}.
+$$
+
+因此 simulator 不需要处理额外 support geometry，同一 latent scene 的 accept/reject 不依赖 render family。
+
+v1 禁止突出 barrier footprint 的 support。
 
 ---
 
-## 2.2 只有 long faces 是 v1 合法碰撞面
+# 5. 时间、帧与 Context/Future
 
-虽然 renderer 中 barrier 有有限宽度，但 v1 benchmark 只允许：
+## 5.1 固定时长
 
-$$
-\boxed{\text{ball 与 barrier long face 的干净碰撞}}
-$$
-
-所有以下情况都应 reject：
-
-- 与 short face 接触；
-- 与四个矩形角发生 corner collision；
-- 与视觉固定脚/支座发生几何重叠；
-- 极近端点碰撞；
-- 极近切线/擦边碰撞。
-
-原因：
-
-> v1 的目标是研究最干净的反射几何，而不是把矩形障碍物所有边缘 contact mode 都引入 task。
-
----
-
-## 2.3 Barrier 的视觉固定结构
-
-为了让模型理解 barrier 是**固定**的，renderer 可以加入：
-
-- 螺丝；
-- clamp；
-- 支座；
-- 固定脚；
-- 与桌面连接结构。
-
-优先方案：
-
-> 这些视觉固定部件应尽量落在 barrier 本体 footprint 内，不额外扩大物理 collision geometry。
-
-这样视觉语义可以表达“固定”，但不会引入新的碰撞对象、在 barrier 的矩形形状上加上更多不规则突出部，使轨迹生成更麻烦。
-
-如果最终美术设计确实让固定脚伸出 barrier footprint，则必须：
-
-- 为其定义 exclusion mask；
-- 任何小球 swept disk 与这些 support zone 有交集的 scene 全部 reject。
-
----
-
-## 2.4 为什么保留 finite barrier，而不改成无限长墙
-
-第一部分 Contact Prediction 的价值很大程度上来自 finite geometry：
-
-> 球的射线是否真正穿过 barrier 的有效长边范围？
-
-如果 barrier 无限长，很多 contact task 会退化为更简单的 half-plane crossing。
-
-因此 v1 保留 finite barrier。
-
-第二阶段 causal intervention 也不为了“方便”切换到无限长 barrier；而是在 finite-barrier 数据中选取：
+v1 固定：
 
 $$
-\boxed{\text{intervention-safe subset}}
+\boxed{fps=24},
 $$
 
-确保 base/source/counterfactual 都是干净 long-face collision。
-
----
-
-# 3. 时间结构：Context 与 Future
-
-## 3.1 统一视频长度
-
-所有视频统一：
-
-- 总时长 \(T\)；
-- frame rate \(fps\)；
-- frame count；
-- 分辨率；
-- clip sampling 逻辑。
-
-当前可以先以约 2 秒为 pilot 直觉，但：
-
-> **代码中绝不能写死 2 秒。**
-
-真正固定的是参数：
-
-```text
-T_total
-T_context
-T_future = T_total - T_context
-fps
-collision_pre_margin
-collision_post_margin
-```
-
----
-
-## 3.2 当前默认：Future 约为 Context 的 2 倍
-
-当前推荐：
-
 $$
-\boxed{T_{future}\approx 2T_{context}}.
+\boxed{N=24\ \text{frames}},
 $$
 
-例如若总长约 2 秒，可先尝试：
+概念 clip interval：
 
 $$
-T_{context}\approx0.67s,
-\qquad
-T_{future}\approx1.33s.
+\boxed{[0,1.0\text{s})}.
 $$
 
-这是**当前默认设计**，精确值需要结合：
-
-- V-JEPA 输入 frame 数；
-- temporal tubelet；
-- VLM 视频采样策略；
-- fps；
-- 速度范围；
-- 接受率；
-
-在 pilot 中最终确定。
-
-### 为什么 Future 应明显长于 Context
-
-Context 的核心作用只是提供足够视觉证据估计：
-
-- 运动方向；
-- 速度大小；
-- 当前位置；
-- barrier geometry。
-
-而 Future 需要同时容纳：
-
-1. collision 前运动；
-2. collision event；
-3. collision 后充分运动。
-
-如果 Future 太短：
-
-- 大量本来合格的 collision scene 会被 reject；
-- collision time 分布会过度集中；
-- post-collision evidence 不足；
-- Judgment 变得脆弱。
-
----
-
-## 3.3 Context 内禁止碰撞
-
-所有主 benchmark scene 必须满足：
+因此：
 
 $$
-\boxed{\text{Context 内没有任何 barrier collision}}
+T_{total}=1.0\text{s}.
+$$
+
+## 5.2 Canonical frame timestamp
+
+Frame $i$ 对应 timestamp：
+
+$$
+\boxed{t_i=i/24},\qquad i=0,\dots,23.
+$$
+
+Canonical renderer 在这些时刻绘制 sharp instantaneous frame。
+
+v1 Canonical **不加 motion blur**，避免 blur length 成为单帧 speed shortcut。
+
+## 5.3 Context / Future
+
+固定：
+
+$$
+\boxed{\text{Context frames}=0,\dots,7}
+$$
+
+共 8 帧；
+
+$$
+\boxed{\text{Future frames}=8,\dots,23}
+$$
+
+共 16 帧。
+
+Context boundary：
+
+$$
+\boxed{t_c=8/24=1/3\text{s}}.
+$$
+
+所以：
+
+$$
+T_{context}:T_{future}=1:2.
+$$
+
+主 State target 定义在：
+
+$$
+\boxed{S_c=S(t_c^-)}.
+$$
+
+## 5.4 Collision frame index
+
+Event time $t_e\in[0,1)$ 的 frame index：
+
+$$
+\boxed{k_e=\lfloor24t_e\rfloor}.
+$$
+
+若 event 恰好发生在 $t=k/24$，归属 frame $k$。
+
+## 5.5 Positive collision temporal window
+
+固定：
+
+$$
+\boxed{k_{collision}\in\{12,13,\dots,19\}}.
+$$
+
+等价：
+
+$$
+\boxed{t_{collision}\in[12/24,20/24)}.
 $$
 
 即：
 
 $$
-t_{collision}>T_{context}.
+[0.5,0.8333\ldots)\text{s}.
 $$
 
-这保证：
-
-- State probe 观察的是 clean pre-collision dynamics；
-- Prediction 任务确实关于未观察 future；
-- Judgment 的 pre/post 结构清晰。
+这样 Future 开始后至少有 frames 8–11 的 future pre-contact evidence，且 collision 后至少保留 frames 20–23 的 post-contact evidence。
 
 ---
 
-## 3.4 Collision 必须位于 Future 的内部，而非边界
+# 6. Scene Sampling 与 Speed
 
-对于 collision-positive scene，不只要求：
+## 6.1 以 Context boundary state 为 anchor
 
-$$
-T_{context}<t_{collision}<T.
-$$
-
-而应要求：
+优先采样：
 
 $$
-\boxed{
-T_{context}+\Delta_{pre}
-<
-t_{collision}
-<
-T-\Delta_{post}
-}
+S_c=(p_c,v_c,b,\phi).
 $$
-
-其中 \(\Delta_{pre},\Delta_{post}\) 应以“至少若干帧”为主要定义，而非先锁定具体秒数。
-
-理由：
-
-- collision 太接近 Future 起点，会缺少 future 中的 pre-contact evidence；
-- collision 太接近视频末尾，会缺少 post-collision trajectory；
-- Judgment 尤其需要充分 post-collision 证据。
-
----
-
-# 4. State 的统一时间锚点
-
-为了让 State 与 Prediction 真正共享同一个 causal anchor，主 State 应统一定义在：
-
-$$
-\boxed{
-t_c=T_{context}
-}
-$$
-
-即 Context 结束、Future 开始的边界时刻。
-
-定义：
-
-$$
-S_c=S(t_c^-).
-$$
-
-核心包括：
-
-$$
-p_c,\quad v_c,\quad \phi,\quad b,\quad L,\quad w,\quad r.
-$$
-
-后续文档中，尽量避免把 \(v_c\) 叫“视频初始速度”。
-
-虽然在无碰撞、匀速 Context 中其数值与 \(t=0\) 速度一致，但为了 causal semantics，统一称为：
-
-> **context-end / pre-collision velocity**
-
-更准确。
-
----
-
-# 5. 推荐 scene sampling：以 Context 边界状态为中心
-
-## 5.1 先采 \(S_c\)，再前后模拟
-
-当前推荐 generator 不以 \(t=0\) 为主锚点，而优先采样：
-
-$$
-S_c=
-(p_c,v_c,\text{barrier geometry}).
-$$
-
-然后：
-
-- 向后解析积分到 \(t=0\)，构造 Context；
-- 向前解析积分到 \(T\)，构造 Future。
-
-这样更自然，因为项目真正研究的 Prediction 输入状态就是：
-
-$$
-S_c.
-$$
-
----
-
-## 5.2 采样变量
-
-建议至少采样：
-
-- context-end ball position \(p_c=(x_c,y_c)\)；
-- speed \(s\)；
-- velocity direction \(\theta_v\)；
-- barrier center \(b\)；
-- barrier long-axis angle \(\phi\)；
-- barrier length \(L\)（第一版可固定或小范围采样）；
-- barrier width \(w\)（第一版可固定）；
-- ball radius \(r\)（第一版建议固定）。
 
 其中：
 
@@ -463,375 +477,441 @@ $$
 v_c=s(\cos\theta_v,\sin\theta_v).
 $$
 
----
+然后：
 
-## 5.3 Speed 必须随机，而不是固定
+- 向后解析积分到 $t=0$ 构造 Context；
+- 向前解析积分到 $t=1$ 构造 Future。
 
-虽然完全弹性碰撞满足：
+## 6.2 Speed 必须随机
 
-$$
-s^+=s^-,
-$$
+固定 speed 会削弱 speed probe，并造成固定 displacement shortcut，因此 speed 必须连续采样。
 
-速度大小仍应在：
+代码必须 config 化：
 
-$$
-s\in[s_{min},s_{max}]
-$$
+```text
+speed_min_cells_per_s
+speed_max_cells_per_s
+```
 
-中随机采样。
-
-原因：
-
-- 增加数据多样性；
-- 避免模型只记固定 displacement/frame；
-- 使 speed 本身成为可 probe 的 State 量；
-- 降低固定速度 shortcut。
-
-但 speed range 必须经过 balancing 检查，避免：
-
-> 高速球天然更容易在有限 Future 内发生正类碰撞
-
-导致 speed 成为 Contact label 的 shortcut。
-
----
-
-# 6. Scene Acceptance / Rejection：统一清洁性规范
-
-任何 trajectory 进入正式 benchmark 前，都必须经过 deterministic acceptance filter。
-
-核心概念：
+当前默认 pilot：
 
 $$
-\boxed{\text{clean single-interaction trajectory}}
-$$
-
----
-
-## 6.1 整段视频内球必须完全在可视区域
-
-对所有 frame / 连续时刻：
-
-- 小球圆盘必须完全在画面内；
-- 不允许球中心在画面内但部分圆盘出界；
-- 不允许 Future 末尾刚好出界。
-
-桌面边缘在 v1 中主要是**视觉语义元素**，不是物理反弹对象。
-
-因此：
-
-> 数据生成必须保证球不会到达桌面/画面边缘，从而不需要引入 table-edge collision。
-
----
-
-## 6.2 Barrier 必须完整可见
-
-整个 finite barrier：
-
-- 本体；
-- 固定结构；
-
-必须完全落在画面内。
-
-不允许 barrier 被 crop。
-
----
-
-## 6.3 Context 必须完全无碰撞
-
-向后模拟的整个 Context 中：
-
-- 不得接触 barrier；
-- 不得擦边；
-- 不得与支座 overlap。
-
----
-
-## 6.4 Positive collision 必须是唯一 clean long-face collision
-
-Collision Dynamics / Judgment 使用的 positive scene 必须满足：
-
-- 只有一次有效 barrier collision；
-- collision 在 long face；
-- contact point 距端点有 margin；
-- 不触碰 short face；
-- 不触碰 corner；
-- 不触碰 support；
-- 碰撞角不接近切线；
-- post-collision trajectory 保持在画面内。
-
----
-
-## 6.5 排除 near-tangent collision
-
-当：
-
-$$
-|v^-\cdot n|<\epsilon_v
-$$
-
-时，属于极近切向擦碰。
-
-这类 scene 应 reject，因为：
-
-- 数值上对微小扰动敏感；
-- 像素离散后“到底算没算碰”可能模糊；
-- 不适合干净的物理判断。
-
----
-
-## 6.6 排除 borderline near-miss
-
-对于 Contact negative，如果球轨迹只比 barrier 有效碰撞区域擦过极小距离，也应 reject。
-
-即设置：
-
-$$
-\epsilon_{miss}>0
-$$
-
-作为 negative margin。
-
-目的：
-
-> 避免“数学上没碰，但视觉上几乎无法区分”的标签边界。
-
----
-
-## 6.7 支座/固定脚 exclusion
-
-若 renderer 的固定部件超出 barrier footprint，则任何：
-
-$$
-\text{swept ball disk}\cap\text{support zone}\neq\emptyset
-$$
-
-的 scene 全部 reject。
-
----
-
-# 7. Dataset 的两个 Task Views
-
-术语规范：
-
-> `split` 只用于 `train / val / test`。
-
-Contact / Dynamics / Judgment 不叫 split，而叫：
-
-- **Task View**
-- 或 **Task Pool**
-
-推荐数据关系：
-
-$$
-\boxed{
-D_{judgment}
-\subset
-D_{dynamics}
-\subset
-D_{contact}
-}
-$$
-
----
-
-# 8. Task View A：Contact Prediction
-
-## 8.1 任务定义必须从 “within horizon” 修正为几何相交
-
-旧表述：
-
-> `will collide within future horizon?`
-
-容易混入一种模糊 negative：
-
-> 几何上最终会碰，但当前视频太短所以没看到。
-
-v1 正式定义应改为：
-
-> **如果小球保持当前 context-end 速度沿射线无限前进，并忽略桌面边缘，它是否会与 barrier 的合法 long-face collision geometry 相交？**
-
-也即：
-
-$$
-\boxed{\text{Will the current trajectory intersect the barrier?}}
-$$
-
----
-
-## 8.2 Positive
-
-Positive scene 必须同时满足：
-
-1. 几何上：
-   $$
-   \text{ray-hit}=1;
-   $$
-2. 实际碰撞属于合法 long-face collision；
-3. 该碰撞发生在可观察 Future 的合法时间窗：
-   $$
-   t_c+\Delta_{pre}
-   <
-   t_{collision}
-   <
-   T-\Delta_{post}.
-   $$
-
----
-
-## 8.3 Negative
-
-Negative 必须严格满足：
-
-$$
-\boxed{\text{ray-hit}=0}
+\boxed{s\sim U(5,8.5)\ \text{cells/s}}
 $$
 
 即：
 
-> 在不考虑桌面边缘的情况下，小球沿当前速度方向射线无限延伸也永远不会发生我们定义的合法 barrier collision。
+$$
+\boxed{s\sim U(140,238)\ \text{px/s}}.
+$$
+
+24 fps 下约：
+
+$$
+5.83\sim9.92\ \text{px/frame},
+$$
+
+即：
+
+$$
+0.17\sim0.28
+$$
+
+个球直径 / frame。
+
+### Speed range 尚保留 pilot 权限
+
+这是当前仍明确允许根据 acceptance statistics 调整的核心连续参数。
+
+正式大规模生成前至少比较：
+
+```text
+A: 5.0–8.5 cells/s   # 当前默认
+B: 4.5–8.5 cells/s   # 更宽的低速端
+C: 5.0–9.0 cells/s   # 仅作对照，重点检查方向性 rejection bias
+```
+
+最终选择标准：
+
+1. speed variation 足够支持 speed State probe；
+2. motion per frame 不过快；
+3. accepted velocity-direction distribution 不被 speed 强烈扭曲；
+4. collision incidence angle 足够多样；
+5. spatial distribution 不集中到桌面长轴两端。
+
+## 6.3 Ball-center legal region
+
+由于整个 ball disk 必须在 Physics ROI 内，ball center 合法区域为 ROI erosion by radius $r$：
+
+$$
+\boxed{x\in[-178.5,178.5],\qquad y\in[-122.5,122.5].}
+$$
+
+尺寸：
+
+$$
+357\times245\ \text{px}.
+$$
+
+## 6.4 利用凸性做 trajectory boundary check
+
+### 无碰撞
+
+ball-center trajectory 为单线段：
+
+$$
+p_0\rightarrow p_T.
+$$
+
+只需检查：
+
+$$
+\boxed{p_0,p_T\in R_{center}}.
+$$
+
+### 一次反弹
+
+trajectory：
+
+$$
+p_0\rightarrow p_{col}\rightarrow p_T.
+$$
+
+只需检查：
+
+$$
+\boxed{p_0,p_{col},p_T\in R_{center}}.
+$$
+
+不需要逐帧 boundary check。
+
+### 重要
+
+不能只检查视频起点与终点，因为 barrier 本体在 ROI 内并不自动保证 collision-time ball center 也位于 ball-center legal region。
 
 ---
 
-## 8.4 必须 reject 的“时间不够”轨迹
+# 7. Contact Geometry 与 Positive / Negative / Reject
 
-若：
+## 7.1 三个术语严格区分
+
+### Positive
+
+进入最终 Contact dataset，label：
+
+```text
+contact = 1
+```
+
+### Negative
+
+进入最终 Contact dataset，label：
+
+```text
+contact = 0
+```
+
+### Reject
+
+latent proposal 完全不进入 Contact dataset。
+
+**Reject 绝不能当作 negative。**
+
+## 7.2 精确 disk-vs-rectangle first contact
+
+Simulator 必须使用真实圆盘与 finite-width rectangle 的精确解析几何 / Minkowski geometry 求 first contact。
+
+不能用：
+
+- ball-center ray 与 barrier centerline 相交；
+- 无限薄线段近似；
+
+替代真实 collision geometry。
+
+在 barrier-local frame：
 
 $$
-\text{ray-hit}=1
+q=p-b,
 $$
 
-但：
-
 $$
-t_{collision}>T
+u=q\cdot t,
 $$
 
-或超出合法 collision window，则：
-
 $$
-\boxed{\text{reject}}
+d=q\cdot n_c.
 $$
 
-而不是标为 negative。
+Barrier half-length：
 
-这样 Contact Prediction 只研究：
+$$
+a=L/2=70\text{ px},
+$$
 
-> trajectory geometry / intersection relation
+half-width：
 
-而不混入：
+$$
+h=w/2=14\text{ px}.
+$$
 
-> “时间够不够”的额外判断。
+first contact 必须分类为：
+
+```text
+long_face
+short_face
+corner
+ambiguous
+```
+
+边界无法稳定分类时一律 `ambiguous -> reject`。
+
+## 7.3 Endpoint margin
+
+固定：
+
+$$
+\boxed{d_1=0.625\ \text{cell}=17.5\ \text{px}=r}.
+$$
+
+Positive long-face contact 要求 surface contact point 在 long face 上，且轴向：
+
+$$
+\boxed{|u_{contact}|<L/2-d_1=52.5\text{ px}}.
+$$
+
+也即合法长边段长度：
+
+$$
+105\text{ px}=3.75\text{ cells}.
+$$
+
+等号边界 reject。
+
+## 7.4 Impact angle threshold
+
+定义：
+
+$$
+\boxed{\theta_{impact}=\angle(v^-,\text{barrier long axis})\in[0^\circ,90^\circ]}.
+$$
+
+可计算：
+
+$$
+\theta_{impact}=\arcsin\frac{|v^-\cdot n|}{\|v^-\|}.
+$$
+
+固定：
+
+$$
+\boxed{\theta_0=10^\circ}.
+$$
+
+Positive 要求：
+
+$$
+\boxed{\theta_{impact}>10^\circ}.
+$$
+
+恰好 10° reject。
+
+## 7.5 Contact Positive 的完整资格
+
+只有同时满足以下条件才进入 positive：
+
+1. Context 完全无任何 barrier collision；
+2. first future contact = `long_face`；
+3. $|u_{contact}|<L/2-d_1$；
+4. collision frame ∈ 12–19；
+5. $\theta_{impact}>10^\circ$；
+6. 非 short-face；
+7. 非 corner；
+8. 非 ambiguous / simultaneous feature contact；
+9. barrier 整体在 Physics ROI；
+10. ball 的 $p_0,p_{col},p_T$ 均在 center legal region；
+11. 整段只发生这一次合法 barrier collision；
+12. post-collision 不再次撞 barrier；
+13. 不涉及 support geometry；
+14. 所有 threshold 等号边界均 reject。
+
+## 7.6 Contact Negative safety region
+
+固定：
+
+$$
+\boxed{d_2=1.25\ \text{cells}=35\ \text{px}}.
+$$
+
+构造：
+
+$$
+\boxed{B_{safe}=B_{barrier}\oplus\mathrm{Disk}(d_2)}.
+$$
+
+这是 barrier rectangle 外扩 35 px 得到的圆角矩形。
+
+从 Context boundary ball center 出发：
+
+$$
+\gamma(\lambda)=p_c+\lambda\hat v_c,\qquad\lambda\ge0.
+$$
+
+Negative 必须满足：
+
+$$
+\boxed{\gamma\cap B_{safe}=\varnothing}.
+$$
+
+因为 ball radius = 0.625 cell，所以此定义保证 ball surface 与真实 barrier boundary 的潜在最小 clearance 至少：
+
+$$
+d_2-r=0.625\text{ cell}=17.5\text{ px}.
+$$
+
+## 7.7 以下全部 Reject，而不是 Negative
+
+- infinite ray 最终会撞真实 barrier，但碰撞晚于视频 window；
+- infinite ray 会撞 short face；
+- infinite ray 会撞 corner；
+- infinite ray 虽不碰真实 rectangle，但进入 $d_2$ safety region；
+- near-tangent / near-miss；
+- Context 过去已经发生 contact；
+- ball trajectory 出 ROI。
+
+最终 negative 必须是：
+
+> **沿当前方向无限延伸也明确、宽 margin 地避开 barrier 的 clean no-contact scene。**
+
+# 8. Dataset 的三个 Task Views
+
+术语规范：
+
+> `split` 只用于 train / val / test。
+
+Contact / Dynamics / Judgment 称为 **Task View / Task Pool**。
+
+三个 View：
+
+1. Contact Prediction；
+2. Collision Dynamics；
+3. Reflection Judgment。
+
+集合关系应针对 **base latent scenes** 理解：
+
+$$
+\boxed{
+\text{Judgment base scenes}
+\subset
+D_{dynamics}
+\subset
+D_{contact-positive}
+\subset
+D_{contact}.
+}
+$$
+
+注意：invalid Judgment video 本身不是“物理上有效的 Dynamics 样本”。更准确的说法：
+
+> **Judgment pairs are derived from dynamics-eligible positive latent scenes.**
 
 ---
 
-## 8.5 几何判定必须考虑 ball radius 与 barrier width
+# 9. Task View A：Contact Prediction
 
-`ray-hit` 不能只用 ball-center ray 与 barrier centerline 的线段相交。
+## 9.1 正式任务定义
 
-真正需要判断的是：
+不再使用旧表述：
 
-> **沿射线移动的圆盘 swept volume 是否与 barrier 的允许 long-face contact region 相交。**
+> `will collide within future horizon?`
 
-并继续排除：
+正式 operational target 是：
 
-- short edge；
-- corner；
-- support；
-- near tangent；
-- borderline miss。
+> **clean contact positive vs clean safe no-contact negative**。
+
+即：
+
+- positive：满足第 7.5 节完整 long-face collision 资格；
+- negative：满足第 7.6 节无限射线 strict safety 条件；
+- 中间所有 borderline / wrong-contact / time-insufficient proposal：reject。
+
+可以简写为：
+
+$$
+\boxed{\text{ray-hit / safe no-hit}}.
+$$
+
+## 9.2 “时间不够”绝不算 negative
+
+如果：
+
+- 几何上最终会碰；
+- 但 collision 不在 frame 12–19；
+- 或 collision 晚于视频末尾；
+
+该 proposal：
+
+$$
+\boxed{\text{reject}}.
+$$
+
+这使 Contact task 只研究 clean geometry / trajectory relation，而不混入：
+
+> “给定有限观察 horizon，时间够不够”。
 
 ---
 
-# 9. Contact 正负比例与 sampling policy
+# 10. Contact 正负比例与 Sampling Policy
 
-## 9.1 不保留所谓“自然 collision prevalence”
+## 10.1 Label balance
 
-如果完全独立均匀采样：
-
-- \(p_c\)；
-- \(\theta_v\)；
-- barrier；
-
-positive collision 可能非常少。
-
-但本 benchmark 是 diagnostic benchmark，不是在估计现实世界：
-
-> “随机扔一个球有多大概率撞墙”。
-
-所谓“自然 prevalence”本身就由我们人为设定的 parameter prior 决定。
-
-因此 Contact 主任务应主动控制 label balance。
-
-当前建议：
+主 Contact dataset：
 
 $$
-\boxed{P(y=1)\approx P(y=0)\approx0.5}
+\boxed{P(y=1)\approx P(y=0)\approx0.5}.
 $$
 
-或接近均衡。
+这是 diagnostic benchmark 的设计，不追求现实世界 collision prevalence。
 
----
-
-## 9.2 推荐生成策略：大量 proposal → simulate → filter → stratified selection
-
-因为 2D analytic simulator 很便宜，推荐：
+## 10.2 推荐流程
 
 ```text
 sample latent proposals
         ↓
-analytic simulate
+analytic geometry / simulation
         ↓
-cleanliness filters
+Physics ROI checks
         ↓
-positive / negative reservoirs
+positive / negative / reject classification
         ↓
-marginal checks + stratified matching
+positive reservoir + negative reservoir
         ↓
-selected latent scenes
+marginal diagnostics
+        ↓
+stratified selection / balancing
         ↓
 render
 ```
 
-这比一开始就强行把所有 velocity 朝 barrier 采更干净。
+## 10.3 Proposal 可以 biased，最终 dataset 必须 controlled
 
----
+若 positive 太少，可让 proposal 更常：
 
-## 9.3 Biased proposal 可以用于效率，但最终 benchmark 必须 controlled
+- velocity 大致朝向 barrier；
+- ball/barrier 距离位于合理范围。
 
-如果 positive 太少，可以让 proposal distribution 稍微偏向：
-
-- velocity 朝向 barrier；
-- 合理距离；
-- 合理 angle。
-
-但这只是 proposal efficiency。
-
-最终 benchmark 必须检查：
+但最终必须检查：
 
 $$
-P(s|y),
-\quad
-P(\theta_v|y),
-\quad
-P(\phi|y),
-\quad
-P(p_c|y),
-\quad
-P(d_{barrier}|y)
+P(s|y),\ P(\theta_v|y),\ P(\phi|y),\ P(p_c|y),\ P(b|y),\ P(\|b-p_c\||y).
 $$
 
-是否严重分离。
+任何单变量明显决定 label 时，都应做：
 
-必要时做 coarse-bin stratified matching。
+- resampling；
+- reweighting；
+- stratified matching。
 
-原则：
-
-> **proposal distribution 可以 biased；final benchmark distribution 必须 controlled。**
-
----
-
-# 10. Task View B：Collision Dynamics
+# 11. Task View B：Collision Dynamics
 
 只对 Contact-positive 的 clean collision scene 定义：
 
@@ -947,236 +1027,313 @@ $$
 
 ---
 
-# 11. Task View C：Reflection Judgment
+# 12. Task View C：Reflection Judgment
 
-v1 Judgment 不研究“宇宙统一的 physical validity”。
+v1 Judgment 不研究一个 heterogeneous、universal 的“physical validity”。
 
-第一版主动收窄为：
+第一版固定为：
 
 $$
-\boxed{\text{Reflection Consistency Judgment}}
+\boxed{\text{Reflection Consistency Judgment}}.
 $$
 
-目标是研究：
+目标：
 
 > 模型是否能根据 pre-collision state 与 barrier geometry，判断 observed post-collision direction 是否符合反射规律。
 
----
+## 11.1 v1 不加入的 violation
 
-## 11.1 为什么只保留一个干净 violation family
-
-第一版不把以下现象混进主 Judgment：
+不加入：
 
 - disappearance；
 - recoloring；
 - spontaneous acceleration；
+- wrong restitution / speed magnitude；
 - object permanence；
 - arbitrary penetration；
-- heterogeneous IntPhys-style violations。
+- heterogeneous IntPhys-style violation families。
 
-原因：
-
-- 这些现象对应不同 physical / visual mechanisms；
-- 会迫使项目转向“有没有统一 physical-invalidity direction”；
-- 会削弱 analytic causal graph；
-- 不利于 State → Prediction / Judgment 的机制分析。
-
-因此：
-
-> **Judgment 越干净越好。**
-
----
+原因：第一版关注同一反射 law 内的 State → Prediction / Judgment 机制，而不是寻找 universal invalidity direction。
 
 ## 11.2 Valid trajectory
 
-完全弹性反射：
-
 $$
-v_{valid}^+
-=
-v^--2(v^-\cdot n)n.
+v_{valid}^+=v^- -2(v^-\cdot n)n.
 $$
 
-速度大小保持不变。
+且：
+
+$$
+\|v_{valid}^+\|=\|v^-\|.
+$$
+
+Valid metadata：
+
+```text
+validity = 1
+angular_violation_deg = 0
+angular_violation_rad = 0
+normalized_violation_severity = 0
+```
+
+## 11.3 Invalid trajectory 的唯一正式 operator
+
+v1 只使用一种正式生成 operator：
+
+> **直接修改 post-collision outgoing direction。**
+
+给定：
+
+$$
+\theta_{valid}^+,
+$$
+
+连续采样：
+
+$$
+\boxed{\delta\sim U(5^\circ,90^\circ)}
+$$
+
+以及：
+
+$$
+\sigma\in\{-1,+1\}.
+$$
+
+构造：
+
+$$
+\boxed{\theta_{bad}^+=\theta_{valid}^+ + \sigma\delta}.
+$$
+
+保持 speed：
+
+$$
+\boxed{\|v_{bad}^+\|=\|v^-\|}.
+$$
+
+所以：
+
+$$
+v_{bad}^+=\|v^-\|(\cos\theta_{bad}^+,\sin\theta_{bad}^+).
+$$
+
+## 11.4 Invalid outgoing 的独立几何检查
+
+$\delta$ 的数值不代替任何以下 check。
+
+### A. 不穿墙
+
+bad outgoing 必须离开实际 contact face，不能继续进入 barrier。
+
+### B. 不 near-tangent
+
+定义 bad outgoing ray 与 barrier long axis 的锐角：
+
+$$
+\theta_{out,bad}\in[0^\circ,90^\circ].
+$$
+
+要求：
+
+$$
+\boxed{\theta_{out,bad}>10^\circ}.
+$$
+
+### C. Invalid trajectory 在 Physics ROI 内
+
+检查：
+
+$$
+p_{col},\ p_T^{bad}\in R_{center}.
+$$
+
+### D. 不发生 second collision
+
+invalid future 不得重新撞 barrier。
+
+## 11.5 Alternate-barrier feasibility check
+
+正式 violation 仍以“直接改变出射角”叙述，但每个 bad candidate 必须验证：
+
+> 该 outgoing direction 本身能由 benchmark support 内另一个合法 barrier orientation 的正常反射产生。
+
+反射几何中 barrier orientation 转 $\alpha$，固定 incoming direction 时 reflected direction 转 $2\alpha$。
+
+因此：
+
+$$
+\boxed{\phi'=\phi+\sigma\frac{\delta}{2}\pmod\pi}.
+$$
+
+### 几何操作
+
+把**整个原 barrier rectangle**以 collision-time ball center：
+
+$$
+p_{col}
+$$
+
+为旋转中心，刚体旋转：
+
+$$
+\sigma\frac{\delta}{2}.
+$$
+
+这与“重新构造一个与同一球圆相切的新 active long face”完全等价：
+
+- 原 active face 与球圆相切；
+- 绕球心旋转保持 line-to-center distance；
+- 新 active face 仍与球圆相切；
+- contact point 在 barrier axis 上的相对位置保持不变；
+- endpoint margin 因刚体旋转保持不变。
+
+### Feasibility 要求
+
+alternate barrier：
+
+1. 四顶点都严格在 Physics ROI 内；
+2. contact 仍属于 long-face interior；
+3. endpoint margin $d_1$ 仍满足；
+4. 无 ambiguous geometry。
+
+**Alternate barrier 不会被渲染进 invalid video。**
+
+真实 invalid video 里 visible barrier 始终保持原来的 $\phi$。
+
+该 alternate geometry 只是 support-feasibility validation；它不能替代后续的 valid/invalid marginal matching。
+
+## 11.6 Good / Bad prefix 完全一致
+
+对同一 Judgment pair：
+
+$$
+I^{good}(t)=I^{bad}(t),\qquad t\le t_{collision}.
+$$
+
+两者共享：
+
+- Context；
+- Future pre-contact；
+- collision time；
+- collision location；
+- visible barrier；
+- speed；
+- render nuisance。
+
+只在 post-collision outgoing direction 上分叉。
 
 ---
 
-## 11.3 Invalid trajectory：只破坏反射方向
-
-Invalid case：
-
-- pre-collision trajectory 不变；
-- barrier geometry 不变；
-- collision time / collision location尽量保持同一事件定义；
-- post-collision speed 保持：
-  $$
-  \|v_{bad}^+\|=\|v^-\|;
-  $$
-- 只改变 outgoing direction。
-
-核心错误是：
-
-$$
-\boxed{
-\theta_{obs}^{+}\neq\theta_{physics}^{+}
-}
-$$
-
----
-
-## 11.4 不允许通过“穿墙”制造 trivial invalid
-
-Invalid outgoing ray 必须仍在 barrier 的合法离开半平面。
-
-也就是说：
-
-> 球反射方向可以错误，但不能直接继续穿过 barrier。
-
-否则模型可以仅靠 solidity / penetration cue 做判断，而不需要理解 reflection law。
-
----
-
-## 11.5 Preferred matched violation construction
-
-优先方法：
-
-1. 保持真实 visible barrier orientation \(\phi\)；
-2. 采样另一个合法 orientation \(\phi'\)；
-3. 用 \(\phi'\) 对同一 incoming velocity 计算一个**本身合法的** outgoing velocity：
-   $$
-   v_{bad}^+=R_{\phi'}(v^-);
-   $$
-4. 但视频里实际 barrier 仍是 \(\phi\)。
-
-这样：
-
-- incoming velocity 本身正常；
-- outgoing velocity 本身来自合法反射分布；
-- barrier orientation 本身正常；
-- 真正错误的是：
-  $$
-  (v^-,\phi,v^+)
-  $$
-  三者之间的关系。
-
-简单角度旋转：
-
-$$
-\theta_{bad}^+
-=
-\theta_{valid}^++\delta
-$$
-
-也可作为实现方式，但必须同时满足：
-
-- speed unchanged；
-- 不穿墙；
-- 角度分布/marginal 不产生 shortcut；
-- 误差 severity 可控。
-
----
-
-## 11.6 Good / Bad pair 共享同一 prefix
-
-Judgment pair 应尽量做到：
-
-$$
-I_{0:t_{collision}}^{good}
-=
-I_{0:t_{collision}}^{bad}.
-$$
-
-或者至少在碰撞前完全一致。
-
-两条视频只在 post-collision future 分叉。
-
-这样 Judgment 真正测试：
-
-> observed transition 与物理 expectation 的一致性。
-
----
-
-# 12. Judgment targets
-
-v1 两个核心 Judgment target：
+# 13. Judgment Targets 与 Sampling
 
 ## 12.1 Binary validity
 
 $$
-\boxed{
-y_{valid}\in\{0,1\}
-}
+\boxed{y_{valid}\in\{0,1\}}.
 $$
 
----
+## 12.2 Canonical continuous severity
 
-## 12.2 Continuous violation magnitude
-
-最自然的物理量是：
+正式 GT：
 
 $$
-\boxed{
-\Delta\theta
-=
-d_{2\pi}
-(
-\theta_{obs}^+,
-\theta_{physics}^+
-)
-}
+\boxed{\Delta\theta=d_{2\pi}(\theta_{bad}^+,\theta_{valid}^+)=\delta}.
 $$
 
-其中：
+必须保存：
+
+```text
+angular_violation_deg
+angular_violation_rad
+```
+
+主 severity probe 优先以 raw $\Delta\theta$ 为 GT。
+
+## 12.3 Normalized severity
+
+固定：
 
 $$
-d_{2\pi}(a,b)
-=
-\min(|a-b|,2\pi-|a-b|).
+\boxed{s_{violation}=\frac{\Delta\theta}{90^\circ}}.
 $$
 
-这比人为定义一个无物理含义的 scalar 更自然。
+因此：
 
-如果实验/可视化需要 \(0\sim1\) severity，可再定义：
+- valid = 0；
+- invalid ≈ $[0.0556,1]$。
 
-$$
-s_{violation}
-=
-\frac{\Delta\theta}{\Delta\theta_{max}}.
-$$
+不要定义成 $(\delta-5^\circ)/85^\circ$，否则最轻 invalid 会与 valid 共用 0。
 
-但 raw angular discrepancy 应保留为 canonical GT。
+## 12.4 Continuous severity，不用离散 grid
 
----
-
-## 12.3 Violation severity sampling
-
-可以使用：
+正式 invalid proposal：
 
 $$
-\delta\in
-\{5^\circ,15^\circ,30^\circ,60^\circ\}
+\boxed{\delta\sim U(5^\circ,90^\circ)}.
 $$
 
-或连续采样。
+不使用固定：
 
-具体 severity grid 暂不锁死，由 pilot 决定。
+```text
+5°, 15°, 30°, 60°
+```
 
-价值：
+作为主数据分布。
 
-- 区分 subtle vs obvious violation；
-- 画 sensitivity curve；
-- 避免只有 binary ceiling/floor；
-- 研究 Judgment information 的 layerwise emergence 是否随 severity 改变。
+原因：离散 severity 是没有物理意义的人为模式。
 
----
+## 12.5 Acceptance 会改变最终 severity distribution
 
-# 13. 第一部分实验：要 probe 的物理量
+alternate-barrier ROI、bad outgoing angle、post trajectory 等 rejection 会让 accepted $P(\delta)$ 偏离 uniform。
+
+因此正式生成后必须统计 accepted severity histogram；若失衡，可对连续 $\delta$ 做 bin-based quota / resampling，但 bin 内仍连续采样。
+
+## 12.6 Violation sign balancing
+
+若 $+\delta$ 与 $-\delta$ 都合法，等概率选 sign。
+
+若只有一侧合法，可保留，但最终必须统计：
+
+$$
+P(\sigma|invalid).
+$$
+
+必要时 balancing，避免“向某一侧偏就是 invalid”的 shortcut。
+
+## 12.7 Judgment class balance
+
+目标：
+
+$$
+\boxed{valid:invalid=1:1}.
+$$
+
+推荐每个 dynamics-eligible base scene 生成：
+
+- 1 个 valid；
+- 1 个 matched invalid。
+
+若 invalid 在最大次数内无法生成：
+
+- base scene 可继续用于 Contact / Dynamics；
+- 不进入 Judgment pair dataset。
+
+默认：
+
+```text
+max_violation_sampling_attempts = 128
+```
+
+该值是 config 参数，不是科学 claim。
+
+# 14. 第一部分实验：要 probe 的物理量
 
 本文档只规定**物理 target 与 parameterization**，不规定具体 probe architecture。
 
 ---
 
-# 13.1 State targets
+# 14.1 State targets
 
 State 全部锚定在：
 
@@ -1355,7 +1512,43 @@ $$
 
 ---
 
-# 13.2 Prediction targets
+## E. Relative Geometry Metadata
+
+为 GT oracle、debugging、shortcut diagnostics 保存：
+
+### Barrier center relative to ball
+
+$$
+\Delta b=b-p_c.
+$$
+
+### Ball in barrier-local frame
+
+$$
+u_c=(p_c-b)\cdot t,
+$$
+
+$$
+d_c=(p_c-b)\cdot n_c.
+$$
+
+还建议保存：
+
+- nearest long-face normal clearance；
+- nearest endpoint axial clearance；
+- ray minimum distance to barrier；
+- candidate collision time（若存在）；
+- actual first-contact feature type。
+
+这些默认是：
+
+> **metadata / oracle / diagnostics only**
+
+而不是自动加入主 State probe matrix。
+
+---
+
+# 14.2 Prediction targets
 
 ## Contact Prediction
 
@@ -1402,7 +1595,7 @@ TTC / contact point 用于验证不同 future quantity 的 layerwise organizatio
 
 ---
 
-# 13.3 Judgment targets
+# 14.3 Judgment targets
 
 Reflection Judgment：
 
@@ -1416,7 +1609,7 @@ Reflection Judgment：
 
 ---
 
-# 14. Broad Probe Training 与 Scene Generalization
+# 15. Broad Probe Training 与 Scene Generalization
 
 Probe 的“泛化”不是所有实验都必须先满足的前提，而是一个独立、更强的 representation claim。
 
@@ -1596,7 +1789,7 @@ $$
 
 ---
 
-# 15. Train / Val / Test Split Integrity
+# 16. Train / Val / Test Split Integrity
 
 ## 15.1 Split 按 latent scene，而不是视频文件
 
@@ -1625,7 +1818,7 @@ $$
 
 ---
 
-# 16. 第二部分实验：Mechanistic Causal Microscope
+# 17. 第二部分实验：Mechanistic Causal Microscope
 
 第二部分目标不是再次做 representation steering，而是测试：
 
@@ -1643,7 +1836,7 @@ $$
 
 ---
 
-# 17. 第二阶段优先干预的 State 变量
+# 18. 第二阶段优先干预的 State 变量
 
 v1 只优先考虑两个最直接影响反射关系的 State：
 
@@ -1672,7 +1865,7 @@ $$
 
 ---
 
-# 18. 第二阶段 Primary Causal Experiment A：State → Prediction
+# 19. 第二阶段 Primary Causal Experiment A：State → Prediction
 
 ## 18.1 Intervention
 
@@ -1782,7 +1975,7 @@ Contact 继续作为第一部分 functional Prediction task。
 
 ---
 
-# 19. Low-level patch 不能预先被称为 high-level `do`
+# 20. Low-level patch 不能预先被称为 high-level `do`
 
 必须明确：
 
@@ -1830,7 +2023,7 @@ $$
 
 ---
 
-# 20. 第二阶段 Primary Causal Experiment B：State → Judgment
+# 21. 第二阶段 Primary Causal Experiment B：State → Judgment
 
 这是第二阶段最重要、最漂亮的实验之一。
 
@@ -1952,7 +2145,7 @@ $$
 
 ---
 
-# 21. Prediction → Judgment：Optional
+# 22. Prediction → Judgment：Optional
 
 只在第一部分出现明确 evidence，例如：
 
@@ -1980,7 +2173,7 @@ $$
 
 ---
 
-# 22. 第二阶段 Source/Base Pair 的生成
+# 23. 第二阶段 Source/Base Pair 的生成
 
 ## 22.1 Counterfactual label 不需要现在预渲染
 
@@ -2074,7 +2267,7 @@ $$
 
 ---
 
-# 23. Intervention-safe Subset
+# 24. Intervention-safe Subset
 
 第二阶段不能对任何任意 base scene 做任意方向修改。
 
@@ -2086,19 +2279,21 @@ $$
 
 要求对 base/source/high-level counterfactual：
 
-- 都保持球在画面内；
+- ball 整个圆盘全程位于 Physics ROI；
+- barrier 整个矩形位于 Physics ROI；
 - 都是 clean long-face collision；
-- contact point 远离 endpoint；
-- 不触 corner / short face / support；
-- 不 near-tangent；
-- collision time 都在合法 Future window；
-- 不引入额外 table-edge interaction。
+- endpoint margin 满足 $d_1=0.625$ cell；
+- impact angle / outgoing angle 满足 >10°；
+- collision frame 都在 12–19；
+- 不触 corner / short face；
+- 不发生 second collision；
+- source 与 base 的非目标物理量及 appearance 尽可能 matched。
 
 这样 finite barrier 可以保留，不需要换成无限长墙。
 
 ---
 
-# 24. 第二阶段的 manipulation check 与 causal outcome
+# 25. 第二阶段的 manipulation check 与 causal outcome
 
 如果一个 candidate State subspace 被修改，可以额外检查：
 
@@ -2150,7 +2345,7 @@ $$
 
 ---
 
-# 25. Canonical 与 Diverse Rendering
+# 26. Canonical 与 Diverse Rendering
 
 ## 25.1 Canonical
 
@@ -2166,7 +2361,8 @@ Canonical 不是纯白数学示意图。
 - fixed lighting；
 - fixed puck style；
 - fixed barrier style；
-- fixed surface。
+- fixed surface；
+- **no motion blur**。
 
 其目的是：
 
@@ -2198,7 +2394,7 @@ Diverse 与 Canonical 共享同一 physics distribution，但改变视觉 nuisan
 
 ---
 
-# 26. Semantic Render Families
+# 27. Semantic Render Families
 
 ## 26.1 Billiards-like overhead table
 
@@ -2263,7 +2459,7 @@ $$
 
 ---
 
-# 27. Object Texture 与 Rolling
+# 28. Object Texture 与 Rolling
 
 v1 moving object 更适合：
 
@@ -2289,7 +2485,7 @@ v1 moving object 更适合：
 
 ---
 
-# 28. 可选空间分析：Physical Information Globalization
+# 29. 可选空间分析：Physical Information Globalization
 
 这是一个 **Optional but highly motivated follow-up**，不是 v1 Must-have。
 
@@ -2334,7 +2530,7 @@ $$
 
 ---
 
-# 29. Benchmark Qualification：进入 Foundation Model 前必须完成
+# 30. Benchmark Qualification：进入 Foundation Model 前必须完成
 
 在正式跑大模型前，benchmark 必须先通过资格测试。
 
@@ -2379,13 +2575,15 @@ $$
 - speed；
 - velocity direction；
 - barrier orientation；
-- absolute position；
-- distance-to-barrier；
+- absolute ball position；
+- barrier center；
+- ball–barrier distance；
+- impact angle；
+- collision point；
 - render family；
 - object color；
 - barrier material；
-- texture；
-- clip length。
+- texture。
 
 不能存在：
 
@@ -2408,6 +2606,24 @@ $$
 Reflection Judgment 的理想情况：
 
 > 单独 pre / post 都显著弱于完整 `(pre, barrier, post)` relation。
+
+此外必须检查 valid / invalid 的 marginal：
+
+$$
+P(\theta^-|valid)\approx P(\theta^-|invalid),
+$$
+
+$$
+P(\phi|valid)\approx P(\phi|invalid),
+$$
+
+$$
+P(\theta^+|valid)\approx P(\theta^+|invalid),
+$$
+
+以及 speed、collision point、violation sign、severity、render nuisance。
+
+**Alternate-barrier feasibility 不能替代统计 marginal matching。**
 
 ---
 
@@ -2436,7 +2652,7 @@ Reflection Judgment 的理想情况：
 
 ---
 
-# 30. 一票否决 Failure Modes 与“只是结果”的现象
+# 31. 一票否决 Failure Modes 与“只是结果”的现象
 
 真正的一票否决应针对：
 
@@ -2451,16 +2667,22 @@ $$
 ## 30.1 必须修复，否则不能进入主实验
 
 - Full-GT oracle 做不好；
+- positive / negative / reject 三类实现与本文档不一致；
+- reject 被误当 negative；
 - Judgment first/last frame shortcut 接近满分；
 - valid/invalid 有明显 renderer/codec artifact；
-- Contact label 被颜色/scene family 等 nuisance 单变量高精度预测；
+- Contact label 被 speed / angle / color / scene family 等单变量高精度预测；
 - 主 “nonlinear Prediction” target 被 GT-state linear model 近乎满分解决；
-- ball/barrier 出画；
-- context 中发生 collision；
-- collision 经常位于 temporal boundary；
-- 大量 corner / short-edge / support contact；
+- ball 或 barrier 任何时刻超出 Physics ROI；
+- Context 中发生 collision；
+- collision 不在 frames 12–19；
+- short-face / corner / ambiguous contact 进入 positive；
 - negative 中混入 “其实会撞，只是视频时间不够”；
-- good/bad 的速度或方向 marginal 严重不平衡。
+- negative ray 进入 $d_2$ safety region；
+- Judgment invalid 穿墙或 near-tangent；
+- Judgment alternate-barrier feasibility 未实现；
+- good/bad 的速度、方向、sign、severity 等 marginal 严重失衡且未控制；
+- support 几何因 render family 改变 latent acceptance。
 
 ---
 
@@ -2511,29 +2733,49 @@ $$
 
 ---
 
-# 31. Simulator / Renderer / Task Generator 的代码职责
+# 32. Simulator / Dataset 代码职责
 
-推荐严格解耦：
+正式推荐流程：
 
 ```text
-Physics / Scene Proposal
+PhysicsConfig
         ↓
-Analytic Simulator
+SceneProposalSampler
+        ↓
+AnalyticGeometry / Simulator
         ↓
 Continuous Trajectory + Events
         ↓
-Acceptance / Rejection
+AcceptanceClassifier
         ↓
-Task Label Generator
+positive / negative / reject
         ↓
-Render Specification
+TaskLabelGenerator
+        ↓
+RenderSpecGenerator
         ↓
 Renderer
         ↓
-Dataset Builder
+DatasetWriter
 ```
 
-第二阶段另加：
+Judgment：
+
+```text
+Dynamics-eligible Base Scene
+        ↓
+JudgmentPairGenerator
+        ↓
+Invalid Direction Proposal
+        ↓
+Bad-Trajectory Geometry Check
+        ↓
+Alternate-Barrier Feasibility Check
+        ↓
+Matched Good / Bad Render
+```
+
+第二阶段：
 
 ```text
 Stored Base Scene
@@ -2547,81 +2789,106 @@ On-demand Source Rendering
 
 ---
 
-# 32. 推荐代码模块
+# 33. `PhysicsConfig`
 
-Codex 实现时建议至少拆成以下职责。
+至少：
 
-## 32.1 `PhysicsConfig`
+```yaml
+frame_width_px: 448
+frame_height_px: 448
+cell_px: 28
 
-保存：
+table_width_px: 420
+table_height_px: 308
 
-```text
-T_total
-T_context
-fps
-frame_size
-physical_play_area
-ball_radius
-barrier_length
-barrier_width
-speed_min
-speed_max
-collision_pre_margin
-collision_post_margin
-endpoint_margin
-tangent_epsilon
-near_miss_margin
+physics_roi_width_px: 392
+physics_roi_height_px: 280
+
+ball_diameter_px: 35
+ball_radius_px: 17.5
+
+barrier_length_px: 140
+barrier_width_px: 28
+
+fps: 24
+num_frames: 24
+num_context_frames: 8
+
+collision_frame_min: 12
+collision_frame_max: 19
+
+endpoint_margin_px: 17.5        # d1 = 0.625 cell
+negative_safety_margin_px: 35   # d2 = 1.25 cells
+min_impact_angle_deg: 10
+min_bad_outgoing_angle_deg: 10
+
+speed_min_cells_per_s: 5.0
+speed_max_cells_per_s: 8.5
+
+violation_delta_min_deg: 5
+violation_delta_max_deg: 90
+max_violation_sampling_attempts: 128
+
+restitution: 1.0
+friction: 0.0
+motion_blur: false
 ```
+
+其中 speed range 是当前默认 pilot，必须保留 config 能力。
 
 ---
 
-## 32.2 `SceneState / SceneSpec`
+# 34. `SceneSpec`
 
 至少：
 
 ```text
 scene_id
 seed
+split
 
-p_context
-speed
-velocity_angle
+p_context_xy
+speed_px_per_s
+speed_cells_per_s
+velocity_angle_rad
 velocity_xy
 
-barrier_center
-barrier_axis_angle
-barrier_length
-barrier_width
+barrier_center_xy
+barrier_axis_angle_rad
+barrier_length_px
+barrier_width_px
 
-ball_radius
+ball_radius_px
 ```
 
 ---
 
-## 32.3 `Trajectory`
+# 35. `Trajectory` / `CollisionEvent`
 
-保存连续/离散状态：
+Frame state：
 
 ```text
-times
-ball_center[t]
-velocity[t]
-barrier_geometry
+frame_times
+ball_center_xy[frame]
+velocity_xy[frame]
+barrier_vertices
+barrier_tangent
 ```
 
-事件：
+Event：
 
 ```text
-ray_hit
-collision_exists
-collision_time
-collision_frame
-collision_subframe_time
+first_contact_exists
+first_contact_time
+first_contact_frame
+first_contact_feature
 
-contact_face
+contact_face_id
 contact_normal
 ball_center_at_contact
 surface_contact_point
+contact_axis_coordinate
+impact_angle_deg
 
 pre_collision_velocity
 post_collision_velocity
@@ -2630,85 +2897,170 @@ post_collision_angle
 
 ---
 
-## 32.4 `AcceptanceReport`
+# 36. `ContactClassification`
 
-不要只返回 True/False。
-
-必须记录：
+必须显式输出：
 
 ```text
-accepted
+status ∈ {positive, negative, reject}
+contact_label ∈ {1, 0, null}
+```
+
+建议额外保存：
+
+```text
+negative_safe_ray_no_intersection
+true_barrier_collision_exists
+collision_after_video_window
+```
+
+这样从数据结构上阻止 reject 与 negative 混淆。
+
+---
+
+# 37. `AcceptanceReport`
+
+必须保存：
+
+```text
+accepted_for_contact
+accepted_for_dynamics
+accepted_for_judgment_base
+status
 rejection_reasons[]
 ```
 
-可能原因：
+建议 rejection enum：
 
 ```text
-ball_out_of_frame
-barrier_out_of_frame
+barrier_outside_physics_roi
+ball_start_outside_physics_roi
+ball_collision_center_outside_physics_roi
+ball_end_outside_physics_roi
+
 context_collision
-collision_outside_window
-ray_hit_beyond_video
+collision_too_early
+collision_too_late
+
 short_face_contact
 corner_contact
-support_contact
-near_tangent
-near_miss
-endpoint_too_close
-post_collision_out_of_frame
-multiple_or_ambiguous_contact
+ambiguous_contact_feature
+endpoint_margin_violation
+impact_angle_too_small
+
+second_collision
+multiple_contact
+
+negative_ray_enters_safety_region
+ray_hit_beyond_video
+negative_not_strictly_safe
+
+numerical_boundary_ambiguous
 ```
 
-这对之后诊断 sampling efficiency 极其重要。
+不要只返回 True / False；必须保留 rejection statistics。
 
 ---
 
-## 32.5 `TaskLabels`
+# 38. `TaskLabels`
 
-### State
+## State
 
 ```text
-p_context
+p_context_xy
 velocity_xy
-speed
-velocity_angle
-barrier_axis_angle
-barrier_center
+speed_px_per_s
+speed_cells_per_s
+velocity_angle_rad
+
+barrier_axis_angle_rad
+barrier_center_xy
+
 relative_geometry
 ```
 
-### Contact
+## Contact
 
 ```text
-ray_hit_binary
+contact_binary
 ```
 
-### Dynamics
+## Dynamics
 
 ```text
-ttc_from_context
-surface_contact_point
-ball_center_at_contact
+ttc_from_context_s
+
+surface_contact_point_xy
+ball_center_at_contact_xy
+
 post_velocity_xy
 post_speed
-post_velocity_angle
+post_velocity_angle_rad
 ```
 
-### Judgment
+## Judgment
 
 ```text
-validity
-angular_violation
+validity_binary
+
+angular_violation_deg
+angular_violation_rad
 normalized_violation_severity
-violation_family = reflection_direction
+
+violation_family = "reflection_direction"
+violation_sign
+
 paired_scene_id
+base_scene_id
 ```
 
 ---
 
-## 32.6 `RenderSpec`
+# 39. `JudgmentVariantMetadata`
 
-Physics 与 visual nuisance 必须分开：
+Invalid variant 额外保存：
+
+```text
+delta_deg
+delta_rad
+sign
+
+bad_post_velocity_angle_rad
+bad_post_velocity_xy
+bad_outgoing_angle_to_barrier_deg
+
+alternate_barrier_rotation_deg
+alternate_barrier_axis_angle_rad
+alternate_barrier_vertices
+alternate_barrier_feasible
+
+invalid_final_center_xy
+invalid_trajectory_inside_roi
+invalid_second_collision
+```
+
+---
+
+# 40. `RelativeGeometry`
+
+建议结构：
+
+```text
+barrier_center_minus_ball_xy
+ball_u_in_barrier_frame
+ball_d_in_barrier_frame
+nearest_long_face_clearance
+nearest_endpoint_axis_clearance
+ray_min_distance_to_barrier
+```
+
+这些默认只用于 metadata / oracle / diagnostics。
+
+---
+
+# 41. `RenderSpec`
+
+至少：
 
 ```text
 render_id
@@ -2717,172 +3069,147 @@ render_family
 
 surface_style
 surface_texture
+
 object_style
 object_color
+
 barrier_style
 barrier_material
+
 lighting_variant
 support_style
 ```
 
-Renderer **不负责物理**。
-
----
-
-## 32.7 `CounterfactualSpec`
-
-为第二阶段预留：
+v1 必须：
 
 ```text
-base_scene_id
-
-intervention_variable
-source_value
-target_value
-
-intervention_safe
-
-counterfactual_post_direction
-counterfactual_reflection_error
-source_scene_spec
+support_inside_barrier_footprint = true
+motion_blur = false
 ```
 
-这些字段可以第二阶段按需生成，不必现在全部 materialize。
+Renderer 不负责物理，不允许在 render 后通过 pixel hack 制造 invalid。
 
 ---
 
-# 33. Dataset Metadata 与可重放性
+# 42. Dataset ID、Split 与可重放性
 
-每个 scene 必须能够仅凭 metadata 完整重建。
-
-必须保存：
-
-- config version；
-- simulator version；
-- seed；
-- scene physical state；
-- task labels；
-- render seed；
-- render family；
-- pair relation；
-- split；
-- acceptance provenance。
-
-尤其必须保存：
-
-$$
-p_c,\quad v_c,\quad \theta_v,\quad \phi,\quad b,\quad L,\quad w,\quad r.
-$$
-
-这决定第二阶段能否随时生成：
-
-$$
-\theta_v\rightarrow\theta_v'
-$$
-
-或：
-
-$$
-\phi\rightarrow\phi'
-$$
-
-的 source / counterfactual scene。
-
----
-
-# 34. Train / Val / Test 与 render variant 的组织
-
-建议层级：
+推荐：
 
 ```text
 latent_scene_id
-    ├── render_variant_1
-    ├── render_variant_2
-    ├── render_variant_3
-    └── judgment_pair(s)
+    ├── render_variant_id
+    └── judgment_pair_id
+          ├── valid_variant
+          └── invalid_variant
 ```
 
-普通 split 基于：
+第二阶段另有：
 
 ```text
-latent_scene_id
+source_scene_id
 ```
 
-而不是 video path。
+普通 train/val/test split 的单位：
 
-同一 latent scene 的所有普通 render variant 和 judgment pair 默认属于同一 split。
+$$
+\boxed{\text{latent base scene}}.
+$$
+
+同一 latent scene 的 semantic skins、texture variants、Judgment good/bad pair、普通 counterfactual variants 不得跨 split。
+
+保存：
+
+```text
+dataset_version
+config_hash
+simulator_version
+renderer_version
+scene_seed
+render_seed
+judgment_seed
+```
+
+只要 config + code version + seed 相同，应完整 replay。
+
+改变会影响 latent distribution / qualification / violation distribution 的规则，必须新建 dataset version。
 
 ---
 
-# 35. v1 数据集建议的三类平衡
+# 43. 正式渲染前的纯 Latent Pilot
 
-## 35.1 Contact label balance
+先生成 10k–100k latent proposals，不渲染，统计：
 
-约：
+## Sampling efficiency
 
-```text
-positive : negative ≈ 1 : 1
-```
+- positive acceptance；
+- negative acceptance；
+- reject reason histogram。
+
+## Spatial
+
+- $p_c$ heatmap；
+- barrier center heatmap；
+- collision point heatmap。
+
+## Angular
+
+- $\theta_v$；
+- $\phi$；
+- impact angle；
+- outgoing angle。
+
+## Speed
+
+- proposal speed；
+- positive accepted speed；
+- negative accepted speed。
+
+## Judgment
+
+- accepted $\delta$；
+- violation sign；
+- bad outgoing angle；
+- alternate-barrier feasibility rate。
+
+## Cross-correlation
+
+重点：
+
+- speed × label；
+- direction × label；
+- barrier orientation × label；
+- collision point × label。
 
 ---
 
-## 35.2 Render family balance
+# 44. 当前仍保留 Pilot 权限的参数
 
-Pooled Diverse 主实验中：
+核心几何与时间规格已经冻结。
 
-```text
-Billiards
-Air Hockey
-Tabletop
-```
+主要仍允许在 pilot 后修改：
 
-尽量近似均衡。
-
----
-
-## 35.3 Judgment balance
-
-Good / Bad matched pair 天然可做到：
-
-```text
-valid : invalid = 1 : 1
-```
-
-Violation severity 在 invalid 中再按预定 distribution 平衡。
-
----
-
-# 36. 当前仍需 Pilot 决定的参数
-
-以下不要硬编码为“理论结论”，而应 config 化：
-
-- 总视频长度 \(T\)；
-- fps；
-- Context:Future 的精确比例；
-- collision pre/post frame margin；
 - speed range；
-- barrier length / width；
-- ball radius；
-- allowed play area margin；
-- endpoint margin；
-- tangent epsilon；
-- near-miss margin；
-- violation severity distribution；
-- render texture 数量；
+- render texture asset 数量；
 - lighting nuisance 幅度；
-- 每个 semantic family 的具体资产。
+- 具体 semantic skin asset。
 
-当前理论默认：
+以下不再视为 pilot 未定项：
 
-$$
-T_{future}\approx2T_{context}
-$$
+- 448×448 frame；
+- 15×11 visual table；
+- 14×10 Physics ROI；
+- 35 px ball；
+- 5×1 cell barrier；
+- 24 fps / 24 frames；
+- 8 Context + 16 Future；
+- collision frames 12–19；
+- $d_1=0.625$ cell；
+- $d_2=1.25$ cells；
+- $\theta_0=10^\circ$；
+- $\delta\in[5^\circ,90^\circ]$；
+- normalized severity $=\delta/90^\circ$。
 
-但最终值以 pilot 接受率与模型输入规格共同确定。
-
----
-
-# 37. v1 明确不做 / Deferred
+# 45. v1 明确不做 / Deferred
 
 ## Physics
 
@@ -2917,7 +3244,7 @@ $$
 
 ---
 
-# 38. Optional Future Extensions
+# 46. Optional Future Extensions
 
 如果主实验完成且有足够时间：
 
@@ -2940,7 +3267,7 @@ $$
 
 ---
 
-# 39. v1 最终实验地图
+# 47. v1 最终实验地图
 
 ## Part I：Representation / Functional Accessibility
 
@@ -3066,46 +3393,105 @@ $$
 
 ---
 
-# 40. 给 Simulator 实现的最终 Checklist
+# 48. 给 Simulator / Dataset Generator 的最终 Checklist
 
-在开始正式大规模生成前，必须确认：
+## Geometry
 
-- [ ] 物理系统只有 single puck + finite-width fixed barrier；
-- [ ] 完全弹性 \(e=1\)；
-- [ ] Context 内绝无 collision；
-- [ ] Future 约为 Context 的 2 倍，具体时长 config 化；
-- [ ] collision-positive event 离 Future 两端有 frame margin；
-- [ ] 球全程不出画；
-- [ ] barrier 全部可见；
-- [ ] table edge 不参与物理；
-- [ ] 只允许 long-face collision；
-- [ ] short edge / corner / support collision 全 reject；
-- [ ] near-tangent reject；
-- [ ] borderline near-miss reject；
-- [ ] Contact negative 必须 `ray_hit = 0`；
-- [ ] `ray_hit = 1` 但超出视频时长的 scene reject；
-- [ ] speed 随机采样；
-- [ ] Contact positive/negative 最终分布近似平衡；
-- [ ] speed / angle / position 等 marginals 做 shortcut 检查；
-- [ ] State 统一锚定在 \(t_c\)；
-- [ ] barrier State 语义采用 axis angle \(\phi\in[0,\pi)\)；
-- [ ] Judgment 只做 reflection-direction inconsistency；
-- [ ] invalid 保持 speed 不变；
-- [ ] invalid 不能穿墙；
-- [ ] good/bad prefix 相同；
-- [ ] violation severity 保存 raw \(\Delta\theta\)；
-- [ ] canonical 与 diverse 共用同一 physics generator；
-- [ ] render family 至少包含 billiards / air-hockey / tabletop；
-- [ ] moving object 使用不需要真实 rolling texture 的外观；
-- [ ] metadata 足以完整 replay；
-- [ ] split 按 latent scene；
-- [ ] source/counterfactual generation 接口为第二阶段预留；
-- [ ] acceptance report 保存明确 reject reason；
-- [ ] full-GT oracle、shortcut baseline、marginal checks 先通过，再跑 foundation model。
+- [ ] continuous world coordinates；
+- [ ] frame / table / ROI bounds；
+- [ ] ball-center eroded ROI；
+- [ ] barrier 4 vertices；
+- [ ] exact disk-vs-rectangle first contact；
+- [ ] long / short / corner / ambiguous classification；
+- [ ] $d_1=17.5$ px endpoint margin；
+- [ ] $d_2=35$ px rounded safety region；
+- [ ] infinite-ray safety intersection；
+- [ ] strict equality-boundary rejection。
 
----
+## Time
 
-# 41. 一句话总结
+- [ ] 24 fps；
+- [ ] 24 frames；
+- [ ] frame time $i/24$；
+- [ ] Context 0–7；
+- [ ] Future 8–23；
+- [ ] $t_c=8/24$；
+- [ ] collision frame = floor($24t$)；
+- [ ] positive collision frame 12–19。
+
+## Trajectory
+
+- [ ] sample $S_c$；
+- [ ] backward Context integration；
+- [ ] forward Future integration；
+- [ ] exact subframe collision time；
+- [ ] elastic reflection $e=1$；
+- [ ] no-contact: start/end ROI check；
+- [ ] collision: start/contact/end ROI check；
+- [ ] second-collision rejection。
+
+## Contact
+
+- [ ] explicit positive / negative / reject；
+- [ ] never conflate reject and negative；
+- [ ] positive first contact = long face；
+- [ ] endpoint margin；
+- [ ] impact angle >10°；
+- [ ] collision frames 12–19；
+- [ ] ray-hit beyond window = reject；
+- [ ] short/corner = reject；
+- [ ] safety-region near miss = reject。
+
+## Judgment
+
+- [ ] valid branch；
+- [ ] continuous $\delta\sim U(5^\circ,90^\circ)$；
+- [ ] ± sign；
+- [ ] same speed；
+- [ ] no penetration；
+- [ ] bad outgoing angle >10°；
+- [ ] invalid end-point ROI check；
+- [ ] no second collision；
+- [ ] alternate barrier rigid rotation by $\delta/2$ around collision ball center；
+- [ ] alternate barrier 4 vertices inside ROI；
+- [ ] raw $\Delta\theta$；
+- [ ] normalized $\Delta\theta/90^\circ$；
+- [ ] 1:1 matched good/bad；
+- [ ] accepted severity/sign balancing。
+
+## Metadata
+
+- [ ] State labels；
+- [ ] Contact labels；
+- [ ] Dynamics labels；
+- [ ] Judgment labels；
+- [ ] relative geometry；
+- [ ] acceptance report；
+- [ ] rejection reasons；
+- [ ] seeds / version hashes；
+- [ ] complete replay possible。
+
+## Renderer
+
+- [ ] 448×448 output；
+- [ ] 15×11 visual table；
+- [ ] 14×10 Physics ROI only exists in latent geometry, not drawn as an artificial box；
+- [ ] support entirely inside barrier footprint；
+- [ ] no canonical motion blur；
+- [ ] semantic skin independent of physics validity；
+- [ ] Judgment invalid created from latent trajectory and fully rerendered, never pixel-edited。
+
+## Qualification before foundation-model experiments
+
+- [ ] pure-latent pilot；
+- [ ] acceptance vs speed / direction；
+- [ ] positive/negative marginal checks；
+- [ ] Judgment valid/invalid marginal checks；
+- [ ] full-GT oracle；
+- [ ] first/last/random/pre/post Judgment controls；
+- [ ] codec/render artifact inspection。
+
+# 49. 一句话总结
 
 v1 benchmark 不是一个“尽量像真实世界的小游戏”，而是一个围绕单一解析反射规律构造的、可被严格控制和因果干预的视觉物理实验平台：
 

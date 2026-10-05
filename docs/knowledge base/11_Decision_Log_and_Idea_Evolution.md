@@ -630,3 +630,95 @@ Mechanistic interpretability 是否应该导出直接 performance improvement？
 不要求新 SOTA 或新 architecture。已有 Othello-GPT、Joseph 等工作证明：
 
 > 可信、非平凡的模型内部科学发现本身可以成为顶会贡献。
+
+
+## Benchmark v1 收敛：从模糊 Ball–Barrier 场景到可执行规格
+
+### Date
+
+2026-10-04
+
+### Earlier State
+
+早期 Ball–Barrier benchmark 已确定：
+
+- single ball/puck + finite barrier；
+- State / Prediction / Judgment 共享同一 latent world；
+- clean long-face collision；
+- matched physical violation；
+- Canonical / Diverse render。
+
+但仍有大量实现层面未决问题：
+
+- Contact 是 within-horizon 还是无限射线几何关系；
+- negative 与 reject 的边界；
+- barrier State 用 signed normal 还是 axis direction；
+- Context/Future 时长；
+- ball / barrier / table 尺寸；
+- speed range；
+- corner / endpoint / grazing 的处理；
+- Judgment violation operator；
+- 第二阶段究竟 intervention 哪些变量、观察哪些 endpoints；
+- low-level patch 是否可以直接解释成 high-level `do`。
+
+### Current Decision
+
+v1 已形成完整 implementation specification，详见 [[05_Benchmark_and_Experiment_Design]]。
+
+关键决策：
+
+- $448\times448$ master frame；
+- $15\times11$-cell visual table；
+- $14\times10$-cell Physics ROI；
+- ball diameter $1.25$ cells；
+- barrier $5\times1$ cells；
+- 24 fps、24 frames；
+- Context 8 frames，Future 16 frames；
+- collision frames 12–19；
+- $e=1$、friction $=0$；
+- State 主变量为 velocity 与 barrier axis angle $\phi$；
+- Contact 只保留 clean positive 与 strict safe negative，中间 case 全 reject；
+- endpoint margin $d_1=0.625$ cell；
+- negative safety margin $d_2=1.25$ cells；
+- impact angle $>10^\circ$；
+- Reflection Judgment 只改变 outgoing direction；
+- violation severity 连续采样：
+
+$$
+\delta\sim U(5^\circ,90^\circ)
+$$
+
+- severity canonical GT 为 raw $\Delta\theta$；
+- alternate barrier rotation $\delta/2$ 仅作为 support-feasibility check；
+- 第二阶段第一批 intervention variables 为 $\theta_{v^-}$ 与 $\phi$；
+- 第一批 State → Prediction endpoint 为 $\theta_{v^+}$；
+- State → Judgment 检查 valid / invalid 与 violation severity；
+- TTC / contact point / Contact Prediction 暂不作为 direction intervention 的主要 causal endpoint。
+
+### Important Conceptual Revision
+
+明确：
+
+$$
+\boxed{
+\text{low-level activation intervention}
+\not\equiv
+do(\text{physical variable})
+}
+$$
+
+模型内部 velocity / direction representation 可能与 position、trajectory、token location 等量纠缠。
+
+因此 high-level causal semantics 不是 intervention 的前提，而应通过：
+
+$$
+\text{downstream internal counterfactual}
+\approx
+\text{physics simulator counterfactual}
+$$
+
+来建立证据。
+
+### Status
+
+**Current.**

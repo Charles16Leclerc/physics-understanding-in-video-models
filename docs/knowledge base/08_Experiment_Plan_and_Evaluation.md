@@ -130,24 +130,54 @@ $$
 
 State target：
 
-- position；
-- velocity；
-- speed；
-- heading；
-- barrier normal。
+核心：
+
+- Cartesian velocity $(v_x,v_y)$；
+- speed $s$；
+- velocity direction $\theta_v$；
+- barrier axis direction $\phi\in[0,\pi)$。
+
+辅助：
+
+- context-end position $p_c$；
+- barrier center / relative geometry（按需要）。
 
 Prediction target：
 
-- collision-within-H；
-- TTC；
-- post-collision velocity。
+### Contact Prediction
+
+- clean contact-positive / clean safe-negative binary。
+
+注意：Contact 已不再定义为 `collision-within-H`。几何上会碰但碰撞落在合法视频时间窗之外的 proposal 会被 reject，而不是标成 negative。
+
+### Collision Dynamics
+
+仅在 clean contact-positive scene 上：
+
+- TTC：
+
+$$
+\tau=t_{\mathrm{collision}}-t_c
+$$
+
+- surface contact point $q_{\mathrm{contact}}$；
+- post-collision Cartesian velocity $(v_x^+,v_y^+)$；
+- post-collision direction $\theta_{v^+}$。
+
+其中：
+
+$$
+\boxed{\theta_{v^+}}
+$$
+
+是最核心 Prediction target；post-collision speed 只作为 sanity / control quantity。
 
 Judgment target：
 
-- valid/invalid；
-- violation severity（若 pilot 成功）。
+- Reflection valid / invalid；
+- continuous angular violation $\Delta\theta$。
 
-输出：完整 layerwise curve。
+输出：完整 layerwise accessibility curve，并比较不同 target 与不同 readout class 的 emergence / explicitness。
 
 ## 5. Stage 3：Token-aware Readout
 
@@ -235,24 +265,79 @@ probe merger output，观察：
 
 ## 8. Stage 6：Mechanistic Microscope
 
-从同一 benchmark 的 canonical subset 选约 1k–3k scenes。
+从同一 benchmark 的 Canonical subset 中建立 intervention-safe mechanistic subset。
 
-重点 target：
+### 第一批 intervention variables
 
-- \(v\)；
-- \(n\)；
-- \(\tau\)；
-- collision；
-- validity。
+核心只优先：
 
-流程：
+$$
+\boxed{\theta_{v^-}}
+$$
+
+与：
+
+$$
+\boxed{\phi}
+$$
+
+即：
+
+- pre-collision / context-end velocity direction；
+- barrier axis direction。
+
+### Primary Causal Experiment A：State → Prediction
+
+对 candidate State representation 做 matched intervention 后，主要观察：
+
+$$
+\boxed{\theta_{v^+}}
+$$
+
+测试 downstream post-collision-direction representation 是否按照 simulator 解析 reflection counterfactual 系统变化。
+
+第一版不把：
+
+- TTC；
+- contact point；
+- Contact Prediction
+
+作为 direction intervention 的主要 causal endpoint。
+
+原因不是 simulator 无法定义这些反事实，而是 low-level direction edit 可能无法保持内部 position / trajectory representation 的全局一致性。
+
+### Primary Causal Experiment B：State → Judgment
+
+保持实际 observed future 不变，只修改 candidate pre-state representation，观察：
+
+- valid / invalid judgment；
+- predicted reflection violation severity；
+
+是否按照由新 State 所定义的 counterfactual reflection expectation 改变。
+
+### 流程
 
 1. 确定高可读层；
-2. 找 candidate subspace；
-3. matched source/base pair；
-4. interchange intervention；
-5. 与真实 counterfactual output 对齐；
-6. 必要时 patch token/head/path。
+2. 找 candidate velocity-direction / barrier-axis representation；
+3. 构造 matched source/base pair；
+4. 做 localized patching / interchange；
+5. 测 State → Prediction；
+6. 测 State → Judgment；
+7. 加 random-subspace / wrong-region / unrelated-variable controls；
+8. 必要时做 ablation；
+9. 若结果稳定，再进入 head/path/circuit analysis。
+
+必须始终遵守：
+
+$$
+\boxed{
+\text{low-level intervention}
+\not\equiv
+do(\text{physical variable})
+}
+$$
+
+除非 downstream counterfactual agreement 提供 causal-alignment 证据。
 
 ## 9. Stage 7：Robustness
 

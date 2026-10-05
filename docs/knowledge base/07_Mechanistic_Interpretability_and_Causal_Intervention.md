@@ -35,31 +35,78 @@ $$
 
 ## 2. Ground-truth computation graph
 
-主 benchmark 的 Ball/Puck–Barrier 提供已知算法：
+主 Ball/Puck–Barrier benchmark 提供一个完全已知的解析物理系统。
+
+在 Context boundary：
 
 $$
-(p,v,n,c)
+S_c=
+(p_c,v_c,b,\phi,L,w,r)
+$$
+
+其中：
+
+- $p_c$：ball position；
+- $v_c$：pre-collision velocity；
+- $b$：barrier center；
+- $\phi$：barrier axis direction；
+- $L,w$：barrier geometry；
+- $r$：ball radius。
+
+这些 state 首先决定相对几何关系以及 Contact：
+
+$$
+(p_c,v_c,b,\phi,L,r)
 \rightarrow
 \text{relative geometry}
 \rightarrow
-\tau_{collision}
-\rightarrow
-v^+
-\rightarrow
-\text{prediction/judgment}.
+\text{contact / no-contact}
 $$
 
-候选 intermediate：
+对于 clean contact-positive scene，又进一步决定：
 
-- position \(p\)；
-- velocity \(v\)；
-- barrier normal \(n\)；
-- distance / relative geometry；
-- time-to-contact \(\tau\)；
-- post-collision velocity \(v^+\)；
-- final collision/validity output。
+$$
+\tau_{\mathrm{collision}},
+\qquad
+q_{\mathrm{contact}},
+\qquad
+v^+
+$$
 
-这使我们可以提出**具体可证伪的内部算法假设**，而不是只做 feature discovery。
+其中完全弹性反射满足：
+
+$$
+v^+
+=
+v^-
+-
+2(v^-\cdot n_{\mathrm{contact}})
+n_{\mathrm{contact}}
+$$
+
+这里的 $n_{\mathrm{contact}}$ 是 simulator 根据实际接触 long face 派生的 event variable，而不是当前主 State probe target。
+
+对于第二阶段 causal analysis，当前最核心、最干净的局部物理关系进一步收窄为：
+
+$$
+\boxed{
+(\theta_{v^-},\phi)
+\rightarrow
+\theta_{v^+}
+}
+$$
+
+以及：
+
+$$
+\boxed{
+(\theta_{v^-},\phi,v^+_{\mathrm{obs}})
+\rightarrow
+\text{Reflection Judgment}
+}
+$$
+
+这使我们可以提出具体、可证伪的内部 computation hypothesis，而不是只做 feature discovery。
 
 ## 3. 线性 feature / subspace 的基本形式
 
@@ -145,32 +192,84 @@ $$
 
 > 保留 A 的其他 representation，只把某个 high-level variable（例如 wall orientation 或 velocity）替换成 B 的值。
 
-### 5.1 Barrier orientation 例子
+### 5.1 Barrier orientation intervention：当前 v1 主要例子
 
-A：竖直 barrier，当前运动会碰撞。
+构造 matched base/source，使：
 
-B：另一 barrier orientation，使相同速度不会碰撞。
-
-若替换 A 内部的 barrier-orientation representation 后，模型 downstream prediction 变成 no collision，并与真实 counterfactual 一致，则提供强 causal evidence：
-
-> 该内部变量参与了 future prediction。
-
-### 5.2 Velocity 例子
-
-替换：
+- $p_c$ 相同；
+- $v_c$ 相同；
+- barrier center、length、width 相同；
+- appearance 尽量一致；
+- 只改变 barrier axis direction：
 
 $$
-v_A\rightarrow v_B
+\phi_A\neq\phi_B
 $$
 
-后观察：
+在 base activation 中只替换 candidate barrier-orientation representation，然后让模型 downstream computation 正常继续。
 
-- \(\tau\)；
-- will-collide；
-- post-collision prediction；
-- judgment
+当前第一批主 Prediction endpoint **不是** will-collide / TTC，而是：
 
-是否按 ground-truth physics 改变。
+$$
+\boxed{\theta_{v^+}}
+$$
+
+若 downstream post-collision-direction representation 系统地朝：
+
+$$
+f(\theta_{v^-},\phi_B)
+$$
+
+所对应的解析反射方向变化，则支持该 candidate internal representation 对 downstream reflection computation 具有 causal contribution。
+
+进一步地，在已经观察完整 valid trajectory 的 Judgment task 中，可以保持 observed future 不变，只修改内部 barrier representation，测试 Reflection Judgment 是否按照新的 counterfactual reflection expectation 改变。
+
+### 5.2 Velocity-direction intervention：当前 v1 主要例子
+
+构造：
+
+$$
+S_A(t_c)
+=
+(p_c,v_A,\phi,\ldots)
+$$
+
+与：
+
+$$
+S_B(t_c)
+=
+(p_c,v_B,\phi,\ldots)
+$$
+
+尽量保持：
+
+- $p_c$ 相同；
+- speed 相同；
+- barrier geometry 相同；
+- appearance 相同；
+
+只改变 velocity direction：
+
+$$
+\theta_{v_A}\neq\theta_{v_B}
+$$
+
+对 candidate velocity-direction representation 做 interchange 后，第一批主要观察：
+
+$$
+\boxed{\theta_{v^+}}
+$$
+
+与 Reflection Judgment 是否按解析物理关系变化。
+
+当前第一版不把：
+
+- TTC；
+- contact point；
+- Contact Prediction
+
+作为这类 intervention 的主要 causal endpoint，因为 low-level direction edit 可能与内部 position / trajectory representation 产生不一致。
 
 ## 6. 为什么 interchange 比简单 steering 更强
 
@@ -320,34 +419,49 @@ Linear probe 主要是在我们希望做“概念选择性的 subspace patching�
 
 - 球颜色；
 - 背景；
-- 速度；
+- speed；
+- velocity direction；
 - barrier orientation；
 
-那么即使只 patch barrier token，也很难知道到底换进去了什么信息。
+那么即使只 patch 某个 token / subspace，也很难知道到底换进去了什么信息。
 
-因此主 benchmark 应优先构造 matched pairs，例如：
+因此 v1 mechanistic experiment 优先构造高匹配度 pair。
 
-$$
-A=(p,v,n_A,\text{appearance}),
-$$
+##### Barrier-direction pair
 
 $$
-B=(p,v,n_B,\text{same appearance}),
+A=(p_c,v_c,b,\phi_A,L,w,\text{appearance})
 $$
 
-只让：
-
 $$
-n_A\neq n_B.
+B=(p_c,v_c,b,\phi_B,L,w,\text{same appearance})
 $$
 
-对 velocity intervention 同理，应尽量只改变：
+主要只让：
 
 $$
-v_A\neq v_B.
+\phi_A\neq\phi_B
 $$
 
-这样 patching 才具有清晰的反事实语义。
+##### Velocity-direction pair
+
+$$
+A=(p_c,s,\theta_A,\phi,\text{appearance})
+$$
+
+$$
+B=(p_c,s,\theta_B,\phi,\text{same appearance})
+$$
+
+主要只让：
+
+$$
+\theta_A\neq\theta_B
+$$
+
+这样 patching 才具有尽可能清楚的反事实语义。
+
+但即使 pair 很干净，也不能自动声称低层 edit 就等于 high-level `do` intervention；这种 causal alignment 仍需要 downstream counterfactual behavior 来验证。
 
 ### 8A.4 Token / region patching 仍不等于 concept-level patching
 
@@ -556,47 +670,75 @@ $$
 
 ### 8C.3 Interchange Intervention
 
-Interchange intervention 比 generic patching 更强，因为它预先定义一个 high-level causal model。
+Interchange intervention 比 generic patching 更强，因为它不仅问：
 
-例如：
+> “这个 site 会不会影响 output？”
+
+而是预先指定一个 high-level causal variable，并检验低层 intervention 是否呈现与该 high-level counterfactual 一致的 downstream effect。
+
+当前 v1 最核心的 high-level 关系是：
 
 $$
-N=\text{barrier normal},
+Y=f(\Theta,\Phi)
+$$
+
+其中：
+
+$$
+\Theta=\theta_{v^-},
 \qquad
-V=\text{ball velocity},
+\Phi=\phi,
+\qquad
+Y=\theta_{v^+}
 $$
 
-$$
-C=f(N,V)=\text{collision}.
-$$
-
-对高层变量做：
+例如，希望测试 barrier-axis representation 时，对 high-level model 可以定义：
 
 $$
-do(N=n_B)
+\Phi_A\rightarrow\Phi_B
 $$
 
-后，真实 simulator 给出 counterfactual：
+对应解析 counterfactual：
 
 $$
-C_{\mathrm{CF}}=f(n_B,v_A).
+Y_{\mathrm{CF}}
+=
+f(\Theta_A,\Phi_B)
 $$
 
-若低层执行：
+低层则尝试：
 
 $$
-h_A'=(I-P_N)h_A+P_Nh_B
+h_A'
+=
+(I-P_\Phi)h_A
++
+P_\Phi h_B
 $$
 
-并满足：
+若 patched model 的 downstream post-collision prediction 系统地接近：
 
 $$
-F(h_A')=C_{\mathrm{CF}},
+Y_{\mathrm{CF}}
 $$
 
-则可以说：
+则支持 candidate low-level subspace 与 high-level barrier-orientation variable 之间存在 causal alignment。
 
-> 该 low-level subspace 与 high-level variable \(N\) 之间存在 causal alignment 的证据。
+对 velocity direction 同理。
+
+但必须强调：
+
+$$
+\boxed{
+\text{low-level interchange}
+\not\equiv
+do(\Phi=\Phi_B)
+}
+$$
+
+是实验开始前的默认立场。
+
+模型内部的 velocity / orientation feature 可能与 position、trajectory、token anchor 等变量纠缠。因此 low-level edit 是否真的近似实现 high-level intervention，本身就是要通过 downstream counterfactual consistency 检验的科学问题。
 
 ### 8C.4 Path Patching
 
@@ -674,18 +816,19 @@ $$
 
 回答：
 
-> 某内部 representation 是否真正扮演 velocity / wall orientation / time-to-contact 等高层 causal variable？
+> 某内部 representation 是否与 velocity direction / barrier axis direction 等 high-level physical variable 存在可验证的 causal alignment，并被 downstream reflection Prediction / Judgment computation 使用？
 
 核心标准：
 
 $$
 \boxed{
-\text{internal counterfactual}
+\text{internal counterfactual effect}
 \approx
-\text{physics simulator counterfactual}
+\text{physics-simulator counterfactual effect}
 }
 $$
 
+注意，这里的目标不是预先假定低层 patch 就是 high-level `do`，而是用 counterfactual agreement 检验二者是否近似对齐。
 ### Level 4：Circuit
 
 方法：
@@ -702,105 +845,122 @@ $$
 
 ## 8E. 本项目第二阶段推荐 protocol
 
-当前建议按以下顺序推进：
+当前 v1 第二阶段建议按以下顺序推进：
 
-1. **linear / low-dimensional probe localization**  
-   优先寻找 \(p,v,n,\tau\) 等 candidate subspace；
+1. **State representation localization**  
+   优先寻找 $\theta_{v^-}$ 与 $\phi$ 的 candidate representation / subspace。
 
 2. **matched token / region activation patching**  
-   先确认 barrier / ball 对应内部区域确实有 causal contribution；
+   先确认 ball-motion / barrier-region representation 对 downstream reflection task 具有 causal contribution。
 
-3. **matched interchange intervention**  
-   使用真实 source activation 替换 candidate physical-variable subspace；
+3. **matched concept-level interchange intervention**  
+   使用真实 source activation 尝试替换 velocity-direction 或 barrier-axis representation。
 
-4. **projection / ablation**  
-   测试必要性；
+4. **State → Prediction causal test**  
+   主要观察：
 
-5. **specificity controls**  
-   包括 random subspace、wrong region、unrelated variable；
+$$
+\theta_{v^+}
+$$
 
-6. **跨大量 matched pairs 计算 Interchange Intervention Accuracy**；
+5. **State → Judgment causal test**  
+   保持 observed future 不变，测试内部 State intervention 是否系统改变：
+   - valid / invalid judgment；
+   - predicted reflection inconsistency / severity。
 
-7. 若结果稳定，再做 **head analysis / path patching**；
+6. **projection / ablation**  
+   测试 candidate representation 对这些 downstream tasks 的必要性。
 
-8. 若简单线性/低维 subspace 无法支撑 causal semantics，再考虑 **DAS**。
+7. **specificity controls**  
+   包括 random subspace、wrong region、unrelated physical variable、unmatched source control。
 
-当前不建议一开始就做复杂 nonlinear steering。
+8. 若结果稳定，再做 **head analysis / path patching**。
+
+9. 若简单线性 / low-dimensional candidate subspace 无法支撑 causal semantics，再考虑 DAS。
+
+当前第一版不把 TTC、contact point 或 Contact Prediction 作为 direction intervention 的主要 causal endpoint。
 
 ### 8E.1 Ball–Barrier 推荐案例
 
-Base scene：
+#### Barrier-direction intervention
+
+Base：
 
 $$
-A:
-p=(0,0),\quad
-v=(1,0),\quad
-n=(1,0),
+A=(p_c,v_c,b,\phi_A,L,w)
 $$
 
-会发生 collision。
-
-Source scene：
+Source：
 
 $$
-B:
-p=(0,0),\quad
-v=(1,0),\quad
-n=(0,1),
+B=(p_c,v_c,b,\phi_B,L,w)
 $$
 
-不会发生 collision。
+保持：
 
-尽量保持：
-
-- same appearance；
-- same background；
-- same ball position；
+- same context-end ball position；
+- same velocity；
 - same speed；
+- same barrier center / size；
+- same appearance；
 
-只改变 barrier orientation。
-
-先做 barrier-region patch：
-
-$$
-H^{\mathrm{barrier}}_l(A)
-\leftarrow
-H^{\mathrm{barrier}}_l(B),
-$$
-
-再做 concept-level interchange：
+主要只改变：
 
 $$
-H_A'
-=
-(I-P_n)H_A+P_nH_B.
+\phi_A\rightarrow\phi_B
 $$
 
-最后在大量：
+低层 intervention 后，观察 downstream：
 
 $$
-(n_A,n_B,v_A)
+\theta_{v^+}^{\mathrm{patched}}
 $$
 
-和：
+是否接近 simulator counterfactual：
 
 $$
-(v_A,v_B,n_A)
+f(\theta_{v^-},\phi_B)
 $$
 
-组合上报告：
+#### Velocity-direction intervention
+
+Base / source 保持：
+
+- $p_c$ 相同；
+- barrier 相同；
+- speed 相同；
+
+主要只改变：
 
 $$
-\boxed{
-\Pr[
-F_{\mathrm{patched}}
-=
-f_{\mathrm{physics}}(\text{counterfactual state})
-]
-}
+\theta_{v^-}^{A}\rightarrow\theta_{v^-}^{B}
 $$
 
-即 Interchange Intervention Accuracy。
+然后观察：
+
+$$
+\theta_{v^+}^{\mathrm{patched}}
+$$
+
+是否按：
+
+$$
+f(\theta_{v^-}^{B},\phi)
+$$
+
+变化。
+
+同一 intervention 还可继续测试 Reflection Judgment，从而区分：
+
+$$
+\text{State representation is decodable}
+$$
+
+与：
+
+$$
+\text{State representation is causally used in downstream physical computation}
+$$
 
 ---
 
@@ -912,17 +1072,35 @@ DAS 直接寻找一个 distributed subspace，使 low-level neural intervention 
 
 ### V-JEPA
 
-$$
-E: p,v,n
-$$
-
-逐渐形成，随后：
+理想但非必须的结果是：
 
 $$
-P: \tau, v^+, collision
+E:
+\quad
+v,\ s,\ \theta_v,\ \phi
 $$
 
-更显式，并且 patch \(v/n\) 会按解析规律改变 future prediction。
+等 current State information 逐渐形成；
+
+随后 predictor 中：
+
+$$
+\theta_{v^+}
+$$
+
+以及其他 collision-dynamics quantities 变得更 explicit / 更低 readout cost。
+
+更强的 causal evidence 是：
+
+> 对 candidate $\theta_{v^-}$ 或 $\phi$ representation 做 matched intervention 后，predictor 中的 post-collision direction 按解析 reflection law 系统变化，并进一步影响 Reflection Judgment。
+
+如果只能 decode State，但 intervention 不产生相应 downstream effect，则说明：
+
+$$
+\text{decodable}
+\neq
+\text{causally used}
+$$
 
 ### VLM
 

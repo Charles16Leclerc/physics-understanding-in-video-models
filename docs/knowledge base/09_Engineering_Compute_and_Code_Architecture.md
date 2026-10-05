@@ -27,66 +27,143 @@ tags: [engineering, compute, code, activations]
 
 > **减少重复的大模型 inference，同时避免 full-token activation 爆硬盘。**
 
-## 2. Simulator / Renderer / Task Generator 解耦
+## 2. Simulator / Acceptance / Task / Renderer 解耦
 
-推荐代码结构：
+当前正式代码流以 [[05_Benchmark_and_Experiment_Design]] 为准：
 
 ```text
-Physics parameters
+PhysicsConfig
         ↓
-Analytic Simulator
+SceneProposalSampler
         ↓
-Trajectory + exact GT
+Analytic Geometry / Simulator
         ↓
-Rendering / nuisance sampler
+Continuous Trajectory + Exact Events
         ↓
-Frames / MP4
+AcceptanceClassifier
         ↓
-Task generator
+positive / negative / reject
         ↓
-State / Prediction / Judgment samples
+TaskLabelGenerator
+        ↓
+RenderSpecGenerator
+        ↓
+Renderer
+        ↓
+DatasetWriter
 ```
 
-### Simulator
+Judgment 额外经过：
 
-输入：
+```text
+Dynamics-eligible Base Scene
+        ↓
+JudgmentPairGenerator
+        ↓
+Invalid Direction Proposal
+        ↓
+Bad-Trajectory Geometry Check
+        ↓
+Alternate-Barrier Feasibility Check
+        ↓
+Matched Good / Bad Render
+```
 
-- initial position；
-- velocity；
-- radius；
-- barrier endpoints / normal；
-- restitution；
-- frame rate / horizon。
+第二阶段 mechanistic experiment：
 
-输出：
+```text
+Stored Base Scene
+        ↓
+Counterfactual / Source Generator
+        ↓
+Intervention-safe Validation
+        ↓
+On-demand Source Rendering
+```
 
-- per-frame physical state；
-- exact collision events；
-- TTC；
+### Simulator / Geometry
+
+主输入：
+
+- context-end ball position $p_c$；
+- velocity / speed / direction；
+- ball radius；
+- barrier center；
+- barrier axis angle $\phi$；
+- barrier length；
+- barrier width；
+- frame/time config。
+
+其中：
+
+- barrier endpoints 为派生量；
+- `contact_normal` 是具体 collision event 的派生量；
+- restitution 在 v1 固定为 $1$，不是采样变量；
+- friction 在 v1 固定为 $0$。
+
+Simulator 输出：
+
+- continuous trajectory；
+- per-frame state；
+- exact collision time；
+- collision frame；
+- contact feature；
+- contact normal；
+- ball center at contact；
+- surface contact point；
 - pre/post velocity；
-- contact point。
+- TTC；
+- auxiliary relative geometry。
+
+### AcceptanceClassifier
+
+必须显式区分：
+
+```text
+positive
+negative
+reject
+```
+
+其中 reject 绝不能作为 Contact negative 使用。
+
+它负责：
+
+- Physics ROI；
+- long / short / corner contact；
+- endpoint margin；
+- impact angle；
+- collision-time window；
+- negative safety region；
+- second collision；
+- ambiguous numerical boundary；
+
+等所有 clean-scene qualification。
+
+### TaskLabelGenerator
+
+只从已经接受的 latent scene / exact GT 生成：
+
+- State labels；
+- Contact labels；
+- Collision Dynamics labels；
+- Reflection Judgment labels；
+- auxiliary oracle quantities。
 
 ### Renderer
 
-只负责把 \(S_t\) 画成 RGB：
+Renderer 只负责把 latent state / trajectory 变成 RGB：
 
-- background / table；
-- puck/ball sprite；
+- table / background；
+- puck / ball appearance；
 - barrier；
-- shading / texture；
-- mild nuisance。
+- lighting；
+- texture；
+- semantic family。
 
-**Renderer 不负责物理。**
+**Renderer 不负责物理，也不负责决定一个 scene 是否是 positive / negative。**
 
-### Task Generator
-
-从 GT 生成：
-
-- regression target；
-- classification target；
-- matched invalid pair；
-- counterfactual pair；
-- QA prompt metadata（若 VLM 需要）。
+Judgment invalid video 必须先在 latent trajectory 层生成完整 bad trajectory，再完整重新渲染；禁止在 rendered pixels 上做剪贴或几何扭曲。
 
 ## 3. 推荐 2D 技术栈
 
@@ -101,45 +178,136 @@ State / Prediction / Judgment samples
 
 ### Anti-aliasing
 
-可以高分辨率 render 后 downsample，例如：
+当前 master output resolution 固定为：
 
 $$
-1024^2\rightarrow256^2.
+448\times448
 $$
 
-避免斜 barrier / 圆边出现明显 aliasing artifact。
+Renderer 可以在更高分辨率内部 supersample，例如：
+
+$$
+896^2\rightarrow448^2
+$$
+
+再做 antialiased downsampling。
+
+所有 latent physics coordinates 始终定义在 448-space；supersampling 只属于 rasterization implementation，不得改变物理几何。
 
 ## 4. Dataset metadata
 
-每个 latent scene 建议有唯一 `scene_id`，保存 JSON/JSONL：
+Canonical schema 以 [[05_Benchmark_and_Experiment_Design]] 为准。工程层至少保证以下字段可追踪。
+
+### Scene identity / reproducibility
 
 ```text
+dataset_version
+config_hash
+simulator_version
+renderer_version
+
 scene_id
-seed
+scene_seed
+render_seed
+judgment_seed
 split
-physics_params
-initial_position
-initial_velocity
-barrier_normal
-barrier_endpoints
-radius
-restitution
+```
+
+### Core State
+
+```text
+p_context_xy
+
+velocity_xy
+speed_px_per_s
+speed_cells_per_s
+velocity_angle_rad
+
+barrier_center_xy
+barrier_axis_angle_rad
+barrier_length_px
+barrier_width_px
+
+ball_radius_px
+```
+
+注意：
+
+- `barrier_axis_angle` 是主 State geometry；
+- `contact_normal` 不是它的别名；
+- barrier endpoints 是由 center / axis / length / width 派生的几何量。
+
+### Collision / Dynamics event
+
+```text
+contact_status
 collision_time
 collision_frame
+
+first_contact_feature
+contact_normal
+ball_center_at_contact
+surface_contact_point
+
+impact_angle_deg
+
 pre_collision_velocity
 post_collision_velocity
-contact_point
-validity
-violation_type
-violation_magnitude
+post_collision_angle
+```
+
+### Contact classification
+
+```text
+status ∈ {positive, negative, reject}
+contact_label ∈ {1, 0, null}
+
+negative_safe_ray_no_intersection
+true_barrier_collision_exists
+collision_after_video_window
+```
+
+### Judgment
+
+```text
+validity_binary
+
+angular_violation_deg
+angular_violation_rad
+normalized_violation_severity
+
+violation_family
+violation_sign
+
+paired_scene_id
+base_scene_id
+```
+
+### Rendering
+
+```text
 render_family
-render_seed
+surface_style
+object_style
+barrier_style
+lighting_variant
+```
+
+### Acceptance provenance
+
+```text
+accepted_for_contact
+accepted_for_dynamics
+accepted_for_judgment_base
+rejection_reasons[]
 ```
 
 关键原则：
 
 - physics metadata 与 render metadata 分开；
-- same latent scene 的所有 render variant 共享同一 split。
+- positive / negative / reject 三态必须显式保存；
+- same latent base scene 的不同 render variant 与 Judgment pair 默认共享同一 train/val/test split；
+- metadata 必须足够完整，使 scene 能够 deterministic replay。
 
 ## 5. Frozen-backbone probe 训练
 

@@ -68,38 +68,49 @@ $$
 
 ### 3.1 Physical State：现在发生了什么？
 
-候选 target：
+当前 benchmark 的核心 State target 包括：
 
-- 位置 \(p\)；
-- 速度 \(v\)；
-- speed；
-- heading；
-- barrier geometry / normal；
-- contact state；
-- object identity。
+- pre-collision Cartesian velocity $(v_x,v_y)$；
+- speed $s$；
+- velocity direction $\theta_v$；
+- barrier axis direction $\phi\in[0,\pi)$。
 
-这些量最接近视觉 encoder 对当前观测世界应该表征的内容。
+位置 $p_c$、barrier center 与 relative geometry 等 simulator ground-truth 变量作为辅助 State / oracle quantities 保留。
+
+其中 barrier 的主视觉 State concept 是无向长轴角 $\phi$，而不是 signed normal；实际 collision 的 `contact_normal` 是由 simulator 根据具体接触 face 派生的事件量。
+
+这些量最接近视觉模型从 Context 中应当形成的 current physical-state representation。
 
 ### 3.2 Physical Prediction：接下来会发生什么？
 
-候选 target：
+当前 Prediction 分为：
 
-- 是否会在 horizon \(H\) 内发生碰撞；
-- time-to-collision \(\tau\)；
-- post-collision velocity \(v^+\)；
-- 选定的 future position control。
+- Contact Prediction：clean contact-positive / clean safe-negative 的几何关系判断；
+- time-to-collision $\tau$；
+- surface contact point $q_{\mathrm{contact}}$；
+- post-collision velocity $v^+$；
+- 尤其核心的 post-collision direction $\theta_{v^+}$。
 
-主 prediction task 应尽量满足：
+Contact 不再定义成简单的 “will collide within horizon”。几何上会碰、但碰撞落在合法视频时间窗之外的 proposal 会被 reject，而不是标成 negative。
+
+主 Prediction task 应尽量满足：
 
 > **不是当前 state 的简单线性函数，而是确实需要 relational / nonlinear computation。**
 
 ### 3.3 Physical Judgment：刚刚发生的事情是否应该发生？
 
-候选 target：
+当前 v1 Judgment 明确收窄为：
 
-- valid / invalid transition；
-- violation severity；
-- 少量 counterfactual / causal physical question。
+$$
+\boxed{\text{Reflection Consistency Judgment}}
+$$
+
+核心 target：
+
+- valid / invalid；
+- continuous angular violation $\Delta\theta$。
+
+Invalid case 保持 incoming trajectory、visible barrier 与 speed 等条件不变，只改变 post-collision direction，因此错误集中在 reflection relation 本身。
 
 重要：Judgment 不被定义成 universal `State → Prediction → Judgment` 链的最后一步。它是独立的 functional target，其与 Prediction 的关系应由架构和实验决定。
 
