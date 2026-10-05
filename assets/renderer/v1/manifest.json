@@ -1,0 +1,1188 @@
+{
+  "asset_bank_version": "v1-procedural-2026-10-06",
+  "assets": [
+    {
+      "asset_id": "canonical_neutral_surface_0",
+      "base_rgb": [
+        226,
+        226,
+        221
+      ],
+      "family": "canonical_neutral",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/canonical_neutral/surface_0.png",
+      "seed": 5891565582045681713,
+      "sha256": "48c0cde54b254810560527094efd13a5178dc2a97797ef4707ebfdc8b7ec737c",
+      "width_px": 404
+    },
+    {
+      "asset_id": "canonical_neutral_outside_0",
+      "base_rgb": [
+        48,
+        50,
+        52
+      ],
+      "family": "canonical_neutral",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/canonical_neutral/outside_0.png",
+      "seed": 13096438624523337378,
+      "sha256": "d4f9346b04465761e945eb91143bb2fddffa4a7755e6c05b4ea831efb557c5f6",
+      "width_px": 448
+    },
+    {
+      "asset_id": "canonical_neutral_rail_0",
+      "base_rgb": [
+        108,
+        113,
+        118
+      ],
+      "family": "canonical_neutral",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/canonical_neutral/rail_0.png",
+      "seed": null,
+      "sha256": "8a8fdc1581a3017bd08490116493ecd95a2bb1f01f9117eccda6740e86797083",
+      "width_px": 420
+    },
+    {
+      "asset_id": "canonical_neutral_ball_muted_red",
+      "base_rgb": [
+        182,
+        62,
+        56
+      ],
+      "family": "canonical_neutral",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/canonical_neutral/muted_red.png",
+      "seed": null,
+      "sha256": "0848f3dcbf0772731c9d521201e0dda1f1376296ff7d5168d897887a4c885e80",
+      "width_px": 35
+    },
+    {
+      "asset_id": "canonical_neutral_barrier_canonical_dark_metal",
+      "base_rgb": [
+        76,
+        81,
+        86
+      ],
+      "family": "canonical_neutral",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/canonical_neutral/canonical_dark_metal.png",
+      "seed": 8813568220812829269,
+      "sha256": "0ee2a70e79731fe17ee373e256c4d084848699d3328d4b5fb45e433fe5fbe6c8",
+      "width_px": 140
+    },
+    {
+      "asset_id": "billiards_surface_0",
+      "base_rgb": [
+        47,
+        112,
+        73
+      ],
+      "family": "billiards",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/billiards/surface_0.png",
+      "seed": 12416393953396083847,
+      "sha256": "066e4c712ac88815ee37f26dd9a2b6d663d3c2eb31c6ee35a6f6311e30b559b8",
+      "width_px": 404
+    },
+    {
+      "asset_id": "billiards_surface_1",
+      "base_rgb": [
+        37,
+        101,
+        68
+      ],
+      "family": "billiards",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/billiards/surface_1.png",
+      "seed": 633260658597178211,
+      "sha256": "62fca0b027412131cf32e370a7030bfb89b3e7cd7bac536c1ddfc9c300db5f0c",
+      "width_px": 404
+    },
+    {
+      "asset_id": "billiards_surface_2",
+      "base_rgb": [
+        54,
+        121,
+        82
+      ],
+      "family": "billiards",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/billiards/surface_2.png",
+      "seed": 4075792793554085060,
+      "sha256": "778feabe475f98bec7949949c90ed7bee54d59f2afe58ee29fe190a38bf74e1a",
+      "width_px": 404
+    },
+    {
+      "asset_id": "billiards_surface_3",
+      "base_rgb": [
+        43,
+        95,
+        70
+      ],
+      "family": "billiards",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/billiards/surface_3.png",
+      "seed": 13862247588218884141,
+      "sha256": "a164181111965d4f78e7b41100f05b0c1796aee867cdcb3330e43b2777782e2f",
+      "width_px": 404
+    },
+    {
+      "asset_id": "billiards_outside_0",
+      "base_rgb": [
+        44,
+        42,
+        40
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/billiards/outside_0.png",
+      "seed": 2228846487842642042,
+      "sha256": "7bc2b14f9059a171c7ad99d15ff69b59ad51f8699f6a9400f69569ded5935aab",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_outside_1",
+      "base_rgb": [
+        52,
+        48,
+        45
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/billiards/outside_1.png",
+      "seed": 12656263739202232601,
+      "sha256": "de35a7c70abcfedfc1b9cce770220e9cfc4f8c33042b7ad52d3507edb01c20a9",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_rail_0",
+      "base_rgb": [
+        74,
+        48,
+        34
+      ],
+      "family": "billiards",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/billiards/rail_0.png",
+      "seed": null,
+      "sha256": "cf80923b9cf21697268c083d3b210ad49fdfd6f6825d64194a162a316e0e9c6e",
+      "width_px": 420
+    },
+    {
+      "asset_id": "billiards_rail_1",
+      "base_rgb": [
+        58,
+        42,
+        34
+      ],
+      "family": "billiards",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/billiards/rail_1.png",
+      "seed": null,
+      "sha256": "e39e8bbc180e107a6b2a1bf1b016ec933afb6bd507ba778fb9c9376946afcaa7",
+      "width_px": 420
+    },
+    {
+      "asset_id": "billiards_rail_2",
+      "base_rgb": [
+        83,
+        53,
+        37
+      ],
+      "family": "billiards",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/billiards/rail_2.png",
+      "seed": null,
+      "sha256": "96825e59a69ec8f9b175475c2d983a0c3f0f2076aa64e0e377b59ece8efa6333",
+      "width_px": 420
+    },
+    {
+      "asset_id": "billiards_ball_muted_red",
+      "base_rgb": [
+        184,
+        72,
+        64
+      ],
+      "family": "billiards",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/billiards/muted_red.png",
+      "seed": null,
+      "sha256": "438fe41b79a77cb7fd070709de33cf3662d45c87238fcfde28f6c36e163e79bf",
+      "width_px": 35
+    },
+    {
+      "asset_id": "billiards_ball_cobalt_blue",
+      "base_rgb": [
+        63,
+        99,
+        158
+      ],
+      "family": "billiards",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/billiards/cobalt_blue.png",
+      "seed": null,
+      "sha256": "b516f925e87eae197d21a66ad9b7f773ea208542f69a193f6878385009c31873",
+      "width_px": 35
+    },
+    {
+      "asset_id": "billiards_ball_ochre",
+      "base_rgb": [
+        190,
+        147,
+        55
+      ],
+      "family": "billiards",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/billiards/ochre.png",
+      "seed": null,
+      "sha256": "cd87c0e038bf0c169d64db7c5db97e6ea2306746a582b424c0d9e16d5d9ab271",
+      "width_px": 35
+    },
+    {
+      "asset_id": "billiards_ball_muted_orange",
+      "base_rgb": [
+        194,
+        103,
+        58
+      ],
+      "family": "billiards",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/billiards/muted_orange.png",
+      "seed": null,
+      "sha256": "c115f6ec0984cb3645ac6c97320df4d32f0265f6a5a30d927f24de9ce436b6d2",
+      "width_px": 35
+    },
+    {
+      "asset_id": "billiards_ball_ivory",
+      "base_rgb": [
+        215,
+        208,
+        191
+      ],
+      "family": "billiards",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/billiards/ivory.png",
+      "seed": null,
+      "sha256": "f61ffc878c0de220c9d5f9960742e8e79ca41c6e1fb15077170b52192767dc1f",
+      "width_px": 35
+    },
+    {
+      "asset_id": "billiards_barrier_dark_wood",
+      "base_rgb": [
+        82,
+        54,
+        39
+      ],
+      "family": "billiards",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/billiards/dark_wood.png",
+      "seed": 9537504037862659427,
+      "sha256": "029bcdebd0b1cbf4c70e52ef5bd4ef46d274cda7bad990d00a9755d5704354a0",
+      "width_px": 140
+    },
+    {
+      "asset_id": "billiards_barrier_near_black",
+      "base_rgb": [
+        52,
+        48,
+        45
+      ],
+      "family": "billiards",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/billiards/near_black.png",
+      "seed": 10084972880686203252,
+      "sha256": "244a4be8ca7d8ca6382645b16a3407a3452eb0ed3e784e513c8f580fd635924c",
+      "width_px": 140
+    },
+    {
+      "asset_id": "billiards_barrier_dark_brown",
+      "base_rgb": [
+        96,
+        63,
+        43
+      ],
+      "family": "billiards",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/billiards/dark_brown.png",
+      "seed": 13733818227189620053,
+      "sha256": "d036a5fc270697bf0e6f85b70eb5bb220841b4dac31c6f7fdf99a4711adafec0",
+      "width_px": 140
+    },
+    {
+      "asset_id": "air_hockey_surface_0",
+      "base_rgb": [
+        238,
+        238,
+        235
+      ],
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/air_hockey/surface_0.png",
+      "seed": 2771771292343962265,
+      "sha256": "60411c06e4a9ec0b85dd23df9497fc2945cab8b921158ef137c3d688fc18b4bb",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_surface_1",
+      "base_rgb": [
+        232,
+        235,
+        238
+      ],
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/air_hockey/surface_1.png",
+      "seed": 4730010743611388871,
+      "sha256": "997ef1a6dd2b662d179062e7a9c71b83c6fb7c9286b103d9b5095b7eba5c0c8f",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_surface_2",
+      "base_rgb": [
+        244,
+        243,
+        237
+      ],
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/air_hockey/surface_2.png",
+      "seed": 10811278296303808588,
+      "sha256": "856544fc0e55fc2274953fea056b7bfd2324fa1a542e46711b956dcea63aaa8b",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_surface_3",
+      "base_rgb": [
+        235,
+        238,
+        236
+      ],
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/air_hockey/surface_3.png",
+      "seed": 16727250961671403322,
+      "sha256": "a7107d0bcd446ff2bf7f7d3f24a04aa610e2421c8f2004a6c9ae7220835a9ceb",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_outside_0",
+      "base_rgb": [
+        58,
+        61,
+        64
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/air_hockey/outside_0.png",
+      "seed": 13609798860004519270,
+      "sha256": "84ca821b3ec761df4eb32b12a1e00f99c64e3509d4cbbe73dca0c65beee44556",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_outside_1",
+      "base_rgb": [
+        66,
+        68,
+        70
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/air_hockey/outside_1.png",
+      "seed": 5190678523310860745,
+      "sha256": "c981b3042fabc3a01777f56bd6b67702df473cd6f8fe43a722f63cab20dad7c1",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_rail_0",
+      "base_rgb": [
+        92,
+        99,
+        105
+      ],
+      "family": "air_hockey",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/air_hockey/rail_0.png",
+      "seed": null,
+      "sha256": "b18226ef8fef32a426f2a96651ead806afcbe2a57a27ab5b39aeb39180eedc63",
+      "width_px": 420
+    },
+    {
+      "asset_id": "air_hockey_rail_1",
+      "base_rgb": [
+        82,
+        91,
+        103
+      ],
+      "family": "air_hockey",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/air_hockey/rail_1.png",
+      "seed": null,
+      "sha256": "c0c2e73c6502b1e136694dc74788abd34507aaee66e238cb5cf300faf123f139",
+      "width_px": 420
+    },
+    {
+      "asset_id": "air_hockey_rail_2",
+      "base_rgb": [
+        110,
+        112,
+        114
+      ],
+      "family": "air_hockey",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/air_hockey/rail_2.png",
+      "seed": null,
+      "sha256": "eb9c54bbf73de9b634832f73e15de85a464d80cfca0334f01e1c29aa16afb7e5",
+      "width_px": 420
+    },
+    {
+      "asset_id": "air_hockey_ball_red",
+      "base_rgb": [
+        190,
+        61,
+        57
+      ],
+      "family": "air_hockey",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/air_hockey/red.png",
+      "seed": null,
+      "sha256": "1bee19cd66703fdf6bf72d3980d53c83e2c47a45711864109f3919fe8b95adb8",
+      "width_px": 35
+    },
+    {
+      "asset_id": "air_hockey_ball_blue",
+      "base_rgb": [
+        55,
+        92,
+        154
+      ],
+      "family": "air_hockey",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/air_hockey/blue.png",
+      "seed": null,
+      "sha256": "403c26e3c150cc1ef70f4f47bbf333fd9e1bac68063f3a0659ae3b206efd7d87",
+      "width_px": 35
+    },
+    {
+      "asset_id": "air_hockey_ball_charcoal",
+      "base_rgb": [
+        62,
+        66,
+        70
+      ],
+      "family": "air_hockey",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/air_hockey/charcoal.png",
+      "seed": null,
+      "sha256": "b9a6018fad88829ba177ad2194106f8585e06994e9e28000fb2c4c9d4ec58e3b",
+      "width_px": 35
+    },
+    {
+      "asset_id": "air_hockey_ball_orange",
+      "base_rgb": [
+        201,
+        104,
+        50
+      ],
+      "family": "air_hockey",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/air_hockey/orange.png",
+      "seed": null,
+      "sha256": "9e4e86e2881f1d56fbd2372fdf5274fd49b96efe74027d9bb933386e3fe1f587",
+      "width_px": 35
+    },
+    {
+      "asset_id": "air_hockey_ball_dark_teal",
+      "base_rgb": [
+        42,
+        102,
+        106
+      ],
+      "family": "air_hockey",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/air_hockey/dark_teal.png",
+      "seed": null,
+      "sha256": "41b62e16885af30c0cb438c49e0fbf4f01448b984c1539f4c66e4e52a41b3f06",
+      "width_px": 35
+    },
+    {
+      "asset_id": "air_hockey_barrier_dark_plastic",
+      "base_rgb": [
+        64,
+        69,
+        74
+      ],
+      "family": "air_hockey",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/air_hockey/dark_plastic.png",
+      "seed": 13304965934026123288,
+      "sha256": "10d72728193ca20d18a97de77f763a0483b238b3b58ce46f6fe0a0b01e9d00e5",
+      "width_px": 140
+    },
+    {
+      "asset_id": "air_hockey_barrier_blue_gray",
+      "base_rgb": [
+        73,
+        84,
+        98
+      ],
+      "family": "air_hockey",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/air_hockey/blue_gray.png",
+      "seed": 10218432647653096810,
+      "sha256": "76a6715488bb9efcabd53c0c460018c57b4c55e29b7a3e2662f0b043b83854d5",
+      "width_px": 140
+    },
+    {
+      "asset_id": "air_hockey_barrier_light_plastic",
+      "base_rgb": [
+        155,
+        159,
+        161
+      ],
+      "family": "air_hockey",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/air_hockey/light_plastic.png",
+      "seed": 14623799007855819521,
+      "sha256": "05fe204d0897674bc3dd5ca9738fed44f87918d83412d8a0c949c6490a293c9d",
+      "width_px": 140
+    },
+    {
+      "asset_id": "tabletop_surface_0",
+      "base_rgb": [
+        225,
+        219,
+        205
+      ],
+      "family": "tabletop",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/tabletop/surface_0.png",
+      "seed": 1968415638580655485,
+      "sha256": "935333f16b72be749d0e2e9a9756e54fa65c5d1f01e3a7b4f0a27aac70fa7a50",
+      "width_px": 404
+    },
+    {
+      "asset_id": "tabletop_surface_1",
+      "base_rgb": [
+        224,
+        226,
+        222
+      ],
+      "family": "tabletop",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/tabletop/surface_1.png",
+      "seed": 1221171955295120054,
+      "sha256": "4fa4a934ff059b10376bfb6a6f227f22e163ab2cafb554b2aab58076289e2870",
+      "width_px": 404
+    },
+    {
+      "asset_id": "tabletop_surface_2",
+      "base_rgb": [
+        232,
+        228,
+        218
+      ],
+      "family": "tabletop",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/tabletop/surface_2.png",
+      "seed": 7337306354442283702,
+      "sha256": "f7a0923786cf5cd2b15cbff2fc56fbcbec6edf97b01b5b326dc9ade3ddf53bb5",
+      "width_px": 404
+    },
+    {
+      "asset_id": "tabletop_surface_3",
+      "base_rgb": [
+        219,
+        225,
+        228
+      ],
+      "family": "tabletop",
+      "height_px": 292,
+      "kind": "surface",
+      "mode": "RGB",
+      "path": "surfaces/tabletop/surface_3.png",
+      "seed": 4580526806454794216,
+      "sha256": "97387be98cdec7628c7880c98306803287b3f5fc495ca8172ea597e24e5c2ecd",
+      "width_px": 404
+    },
+    {
+      "asset_id": "tabletop_outside_0",
+      "base_rgb": [
+        72,
+        70,
+        67
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/tabletop/outside_0.png",
+      "seed": 2136618164637925989,
+      "sha256": "76b1dce01ed11f9267bf7bb2107be6a960a1dfbd46c741a414121eb6942db156",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_outside_1",
+      "base_rgb": [
+        68,
+        71,
+        72
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "outside_background",
+      "mode": "RGB",
+      "path": "outside/tabletop/outside_1.png",
+      "seed": 14736459900512961687,
+      "sha256": "bc8cfdb0cb5aae7a7dff2d2ba4519e6d23c41da323175e457327872d021ae8cb",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_rail_0",
+      "base_rgb": [
+        118,
+        116,
+        112
+      ],
+      "family": "tabletop",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/tabletop/rail_0.png",
+      "seed": null,
+      "sha256": "cedf379125251797f6bb70c4a4b8deaa76f4dad0420460e015a0a644e29c4edd",
+      "width_px": 420
+    },
+    {
+      "asset_id": "tabletop_rail_1",
+      "base_rgb": [
+        157,
+        139,
+        112
+      ],
+      "family": "tabletop",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/tabletop/rail_1.png",
+      "seed": null,
+      "sha256": "f4fdac7ed8f54f3d6799f531071658834b5a52d2443051c74c36b157a97df737",
+      "width_px": 420
+    },
+    {
+      "asset_id": "tabletop_rail_2",
+      "base_rgb": [
+        119,
+        126,
+        130
+      ],
+      "family": "tabletop",
+      "height_px": 308,
+      "kind": "table_rail",
+      "mode": "RGBA",
+      "path": "rails/tabletop/rail_2.png",
+      "seed": null,
+      "sha256": "3c1d6937332177415299f26c6566ecbc8ddcb4dafe03bf55dc8fbd9949df06c2",
+      "width_px": 420
+    },
+    {
+      "asset_id": "tabletop_ball_red",
+      "base_rgb": [
+        184,
+        67,
+        61
+      ],
+      "family": "tabletop",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/tabletop/red.png",
+      "seed": null,
+      "sha256": "50f0f4ae1eb3cca42aef8b875a32c82023dc02803f87e01c8f2db7c9eccd1151",
+      "width_px": 35
+    },
+    {
+      "asset_id": "tabletop_ball_blue",
+      "base_rgb": [
+        62,
+        97,
+        151
+      ],
+      "family": "tabletop",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/tabletop/blue.png",
+      "seed": null,
+      "sha256": "594c72efea5fe5e5cc4b9cb0637e143b3c3165933b1008e44a1e6e3205a03f1b",
+      "width_px": 35
+    },
+    {
+      "asset_id": "tabletop_ball_orange",
+      "base_rgb": [
+        197,
+        111,
+        56
+      ],
+      "family": "tabletop",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/tabletop/orange.png",
+      "seed": null,
+      "sha256": "c83ceecf56b482d4b897f5a7c9b94bc9e0674ea31baeef90d7ffcd62443080c9",
+      "width_px": 35
+    },
+    {
+      "asset_id": "tabletop_ball_dark_teal",
+      "base_rgb": [
+        48,
+        103,
+        104
+      ],
+      "family": "tabletop",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/tabletop/dark_teal.png",
+      "seed": null,
+      "sha256": "07aed02bb2c55f8006e5b2a8b8e4c00a33978d36990194efb286e02ff315cbfc",
+      "width_px": 35
+    },
+    {
+      "asset_id": "tabletop_ball_charcoal",
+      "base_rgb": [
+        69,
+        72,
+        74
+      ],
+      "family": "tabletop",
+      "height_px": 35,
+      "kind": "ball",
+      "mode": "RGBA",
+      "path": "balls/tabletop/charcoal.png",
+      "seed": null,
+      "sha256": "73cb70fba1286dcd660bc715ccf87f8663faa8f917192ee7482103638228b864",
+      "width_px": 35
+    },
+    {
+      "asset_id": "tabletop_barrier_aluminum_gray",
+      "base_rgb": [
+        130,
+        136,
+        140
+      ],
+      "family": "tabletop",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/tabletop/aluminum_gray.png",
+      "seed": 16308396096624210993,
+      "sha256": "6765d41416823365a6ad89ed19bcebcdaa48c18e34770139a03d6445659de1f7",
+      "width_px": 140
+    },
+    {
+      "asset_id": "tabletop_barrier_dark_metal",
+      "base_rgb": [
+        69,
+        74,
+        78
+      ],
+      "family": "tabletop",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/tabletop/dark_metal.png",
+      "seed": 15701872225518262900,
+      "sha256": "fea4b9769e16c9c8e3079f7379d40260f19489056f6da72d921ab9921859f400",
+      "width_px": 140
+    },
+    {
+      "asset_id": "tabletop_barrier_matte_black",
+      "base_rgb": [
+        52,
+        54,
+        56
+      ],
+      "family": "tabletop",
+      "height_px": 28,
+      "kind": "barrier",
+      "mode": "RGBA",
+      "path": "barriers/tabletop/matte_black.png",
+      "seed": 13863908675599362591,
+      "sha256": "9af7fda883ade39cd281c2707c843997385ab01e91ab7197a725b4557a291ebd",
+      "width_px": 140
+    },
+    {
+      "asset_id": "air_hockey_marking_0",
+      "base_rgb": null,
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "marking",
+      "mode": "RGBA",
+      "path": "markings/air_hockey/marking_0.png",
+      "seed": null,
+      "sha256": "2775381d2f65d82473b3ad9c95d0f9dac3cec78c6d78618782688da193d346d7",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_marking_1",
+      "base_rgb": null,
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "marking",
+      "mode": "RGBA",
+      "path": "markings/air_hockey/marking_1.png",
+      "seed": null,
+      "sha256": "cedf40076047cbe0e3aa75db34055f447078ad75e7a17fec6801def41c0a75ae",
+      "width_px": 404
+    },
+    {
+      "asset_id": "air_hockey_marking_2",
+      "base_rgb": null,
+      "family": "air_hockey",
+      "height_px": 292,
+      "kind": "marking",
+      "mode": "RGBA",
+      "path": "markings/air_hockey/marking_2.png",
+      "seed": null,
+      "sha256": "51f3d15d09e6d434a101f6f3ac90233a5725604f713d797e7387ea3b359c66a5",
+      "width_px": 404
+    },
+    {
+      "asset_id": "canonical_neutral_background_preview_0",
+      "base_rgb": [
+        226,
+        226,
+        221
+      ],
+      "family": "canonical_neutral",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/canonical_neutral/background_0.png",
+      "seed": null,
+      "sha256": "3a22450fce90dd4658454b3c87f31ffcf66dcf3550f8767d8c23058eaf6c1934",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_background_preview_0",
+      "base_rgb": [
+        47,
+        112,
+        73
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/billiards/background_0.png",
+      "seed": null,
+      "sha256": "82a5cc18321c7f6fc093b2648361567be9aa0854505edb621a3f6dedf592c859",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_background_preview_1",
+      "base_rgb": [
+        37,
+        101,
+        68
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/billiards/background_1.png",
+      "seed": null,
+      "sha256": "faef9ce2b6503420c245d4b6a1ce9f39870aea103171b07bd5134661a0d4b53b",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_background_preview_2",
+      "base_rgb": [
+        54,
+        121,
+        82
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/billiards/background_2.png",
+      "seed": null,
+      "sha256": "0259c3c56d748e4a516acc69f6d9e6892e998434d2ad1611f9cd1ddead18bd3e",
+      "width_px": 448
+    },
+    {
+      "asset_id": "billiards_background_preview_3",
+      "base_rgb": [
+        43,
+        95,
+        70
+      ],
+      "family": "billiards",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/billiards/background_3.png",
+      "seed": null,
+      "sha256": "8591ff7b124e25b21a5190b8d7d8a88d799fab97285d4b405e5ad7a0f8bdff11",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_background_preview_0",
+      "base_rgb": [
+        238,
+        238,
+        235
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/air_hockey/background_0.png",
+      "seed": null,
+      "sha256": "46e0eb5eef4ef5828224a8dd6a486006f8be86f7ee34a543fa48a7ae93705fc8",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_background_preview_1",
+      "base_rgb": [
+        232,
+        235,
+        238
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/air_hockey/background_1.png",
+      "seed": null,
+      "sha256": "5d3079fefe6e098f5e4c216ed893d8c0d953023fed6ff4ce8aa3a6c0edb5beb2",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_background_preview_2",
+      "base_rgb": [
+        244,
+        243,
+        237
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/air_hockey/background_2.png",
+      "seed": null,
+      "sha256": "52e31c298d23a36980ffa8439f72daecad38c91a5692ca941cf75c4e45afec91",
+      "width_px": 448
+    },
+    {
+      "asset_id": "air_hockey_background_preview_3",
+      "base_rgb": [
+        235,
+        238,
+        236
+      ],
+      "family": "air_hockey",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/air_hockey/background_3.png",
+      "seed": null,
+      "sha256": "286e449ee89894c2a0212314b8a7b0dc32207f2453df1f7bd8b52280ef17776a",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_background_preview_0",
+      "base_rgb": [
+        225,
+        219,
+        205
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/tabletop/background_0.png",
+      "seed": null,
+      "sha256": "28ed7f1d53d34ec88186e6946229c3c717a6f4abea17eac5a61090c519a1382f",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_background_preview_1",
+      "base_rgb": [
+        224,
+        226,
+        222
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/tabletop/background_1.png",
+      "seed": null,
+      "sha256": "b6ccf5e8b77d8798359a0778474618c7f92f138162a4536686939ed1887512fe",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_background_preview_2",
+      "base_rgb": [
+        232,
+        228,
+        218
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/tabletop/background_2.png",
+      "seed": null,
+      "sha256": "cd9ae00f1cca1dc0d6e7637caa5867f8187ed5b65d326a04a46facd91624b80f",
+      "width_px": 448
+    },
+    {
+      "asset_id": "tabletop_background_preview_3",
+      "base_rgb": [
+        219,
+        225,
+        228
+      ],
+      "family": "tabletop",
+      "height_px": 448,
+      "kind": "background_preview",
+      "mode": "RGB",
+      "path": "background_previews/tabletop/background_3.png",
+      "seed": null,
+      "sha256": "54287b1e6c875180ae1c462fdeb1d478f796261dd3badb659c0f13984d1ca598",
+      "width_px": 448
+    },
+    {
+      "asset_id": "asset_bank_contact_sheet",
+      "base_rgb": null,
+      "family": "all",
+      "height_px": 992,
+      "kind": "contact_sheet",
+      "mode": "RGB",
+      "path": "contact_sheet.png",
+      "seed": null,
+      "sha256": "215d70b0a354aacfbe6ac0d8e5189a98ec039526dd6c4de3e6f2674129fd2920",
+      "width_px": 896
+    },
+    {
+      "asset_id": "object_asset_contact_sheet",
+      "base_rgb": null,
+      "family": "all",
+      "height_px": 840,
+      "kind": "object_contact_sheet",
+      "mode": "RGB",
+      "path": "object_contact_sheet.png",
+      "seed": null,
+      "sha256": "95189d1358ec78b626bbe91fd1a25190c158e3062c9f70f72452a2b88b3a7595",
+      "width_px": 896
+    }
+  ],
+  "ball_diameter_px": 35,
+  "barrier_size_px": [
+    140,
+    28
+  ],
+  "frame_size_px": 448,
+  "generator": "physics_bench.assets.generate_asset_bank",
+  "procedural_only": true,
+  "rail_width_px": 8,
+  "root_seed": 20261006,
+  "supersample": 4,
+  "surface_size_px": [
+    404,
+    292
+  ],
+  "table_size_px": [
+    420,
+    308
+  ]
+}

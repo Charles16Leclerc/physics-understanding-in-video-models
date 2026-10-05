@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .assets import AssetBankConfig, generate_asset_bank
 from .config import PhysicsConfig
 from .debug_renderer import render_debug_video
 from .pilot import run_pilot
@@ -24,6 +25,9 @@ def _parser() -> argparse.ArgumentParser:
     pilot.add_argument("--render-judgment-pairs", type=int, default=8)
     pilot.add_argument("--no-render", action="store_true")
     pilot.add_argument("--progress-every", type=int, default=10_000)
+    assets = subparsers.add_parser("assets", help="generate the deterministic renderer v1 asset bank")
+    assets.add_argument("--seed", type=int, default=20_261_006)
+    assets.add_argument("--output", type=Path, default=Path("assets/renderer/v1"))
     return parser
 
 
@@ -89,6 +93,11 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "pilot":
         return _run_pilot(args)
+    if args.command == "assets":
+        manifest = generate_asset_bank(args.output, AssetBankConfig(seed=args.seed))
+        print(f"asset bank complete: {args.output}")
+        print(f"generated {len(manifest['assets'])} PNG assets")
+        return 0
     raise AssertionError(f"unhandled command: {args.command}")
 
 

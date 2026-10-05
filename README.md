@@ -26,6 +26,18 @@ deterministic PCG64 sampling; proposal-prior statistics; positive/negative/rejec
 right-continuous event frames; elastic reflection; Judgment-pair constraints; randomized scene
 invariants; pilot artifacts; and real H.264 MP4 encoding.
 
+## Generate the renderer v1 asset bank
+
+The canonical and three Diverse-family visual assets are generated procedurally and can be
+replayed exactly from their recorded seed:
+
+```bash
+.venv/bin/physics-bench assets --output assets/renderer/v1 --seed 20261006
+```
+
+The output contains separate surface, outside-background, rail, marking, ball, and barrier PNGs,
+composed 448×448 background previews, a contact sheet, and a SHA-256 manifest.
+
 ## Run the v1 latent pilot
 
 ```bash
@@ -66,6 +78,7 @@ src/physics_bench/simulator.py        trajectories, events, acceptance, task lab
 src/physics_bench/judgment.py         matched valid/invalid reflection pairs
 src/physics_bench/pilot.py            large-pilot writer and distribution statistics
 src/physics_bench/debug_renderer.py   non-production diagnostic MP4 renderer
+src/physics_bench/assets.py           deterministic procedural renderer asset bank
 src/physics_bench/cli.py              command-line interface
 ```
 
