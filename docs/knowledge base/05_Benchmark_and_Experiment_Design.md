@@ -1054,6 +1054,13 @@ $$
 \boxed{P(y=1)\approx P(y=0)\approx0.5}.
 $$
 
+第一版 construction 采用精确计数平衡：保留选中的全部 positive，再从 accepted negative
+中使用独立 `selection_seed` 无放回随机抽取相同数量，因此最终：
+
+$$
+\boxed{N_{positive}=N_{negative},\qquad P(y=1)=P(y=0)=0.5}.
+$$
+
 这是 diagnostic benchmark 的设计，不追求现实世界 collision prevalence。
 
 ## 10.2 推荐流程
@@ -4199,6 +4206,10 @@ $$
 它们不得跨 split。
 
 same-latent paired-render invariance 是显式例外实验，但不能冒充 held-out generalization。
+
+初次物理生成和渲染阶段允许暂不分 train/val/test；此时 Dataset Index / manifest 必须保留
+nullable `split` 字段并写为 `null`。在任何 probe 训练前，必须再以 `latent_scene_id` 为单位
+统一赋值，且无需重新模拟或渲染。
 
 ## 42.3 Dataset Index：完整数据集的事实来源
 

@@ -3,7 +3,7 @@
 This repository contains the benchmark and mechanistic-interpretability project documented in
 [`docs/knowledge base`](docs/knowledge%20base). The current code implements the v1 analytic
 single-disk / finite-barrier simulator, Reflection Judgment pair generator, latent pilot
-statistics, and a debug-only MP4 renderer.
+statistics, deterministic visual asset bank, and production/debug MP4 renderers.
 
 ## Setup
 
@@ -37,6 +37,27 @@ replayed exactly from their recorded seed:
 
 The output contains separate surface, outside-background, rail, marking, ball, and barrier PNGs,
 composed 448×448 background previews, a contact sheet, and a SHA-256 manifest.
+
+## Render a balanced Contact dataset
+
+The production renderer consumes only a latent trajectory and an explicit replayable
+`AppearanceSpec`. The dataset wrapper keeps every selected positive and randomly downsamples
+accepted negatives to the same count. No train/val/test split is assigned yet; the nullable split
+field is retained in the manifest for the later latent-scene-level split step.
+
+```bash
+.venv/bin/physics-bench render-contact \
+  --num-proposals 100000 \
+  --scene-seed 20261005 \
+  --selection-seed 38410771 \
+  --render-seed 71902633 \
+  --families canonical_neutral billiards air_hockey tabletop \
+  --asset-bank assets/renderer/v1 \
+  --output outputs/renderer_contact_v1
+```
+
+For a small visual smoke test, add `--max-per-class 4`. Output contains H.264 MP4 files,
+`index/appearances.jsonl`, `index/renders.jsonl`, and `manifests/contact.jsonl`.
 
 ## Run the v1 latent pilot
 
@@ -79,6 +100,8 @@ src/physics_bench/judgment.py         matched valid/invalid reflection pairs
 src/physics_bench/pilot.py            large-pilot writer and distribution statistics
 src/physics_bench/debug_renderer.py   non-production diagnostic MP4 renderer
 src/physics_bench/assets.py           deterministic procedural renderer asset bank
+src/physics_bench/renderer.py         production AppearanceSpec sampler and RGB/MP4 renderer
+src/physics_bench/render_dataset.py   balanced Contact selection and dataset writer
 src/physics_bench/cli.py              command-line interface
 ```
 

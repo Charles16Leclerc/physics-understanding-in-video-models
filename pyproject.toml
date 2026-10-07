@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "physics-bench"
 version = "0.1.0"
-description = "Analytic simulator and debug renderer for the video-model physics benchmark"
+description = "Analytic simulator and controlled renderer for the video-model physics benchmark"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

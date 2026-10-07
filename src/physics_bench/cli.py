@@ -9,6 +9,8 @@ from .assets import AssetBankConfig, generate_asset_bank
 from .config import PhysicsConfig
 from .debug_renderer import render_debug_video
 from .pilot import run_pilot
+from .render_dataset import render_balanced_contact_dataset
+from .renderer import ALL_RENDER_FAMILIES
 from .serialization import write_json
 
 
@@ -28,6 +30,26 @@ def _parser() -> argparse.ArgumentParser:
     assets = subparsers.add_parser("assets", help="generate the deterministic renderer v1 asset bank")
     assets.add_argument("--seed", type=int, default=20_261_006)
     assets.add_argument("--output", type=Path, default=Path("assets/renderer/v1"))
+    render_contact = subparsers.add_parser(
+        "render-contact",
+        help="render a 50:50 positive/negative Contact dataset without assigning splits",
+    )
+    render_contact.add_argument("--num-proposals", type=int, default=100_000)
+    render_contact.add_argument("--scene-seed", type=int, default=20_261_005)
+    render_contact.add_argument("--selection-seed", type=int, default=38_410_771)
+    render_contact.add_argument("--render-seed", type=int, default=71_902_633)
+    render_contact.add_argument("--max-per-class", type=int)
+    render_contact.add_argument(
+        "--families",
+        nargs="+",
+        choices=ALL_RENDER_FAMILIES,
+        default=list(ALL_RENDER_FAMILIES),
+    )
+    render_contact.add_argument("--asset-bank", type=Path, default=Path("assets/renderer/v1"))
+    render_contact.add_argument(
+        "--output", type=Path, default=Path("outputs/renderer_contact_v1")
+    )
+    render_contact.add_argument("--supersample", type=int, default=2)
     return parser
 
 
@@ -97,6 +119,22 @@ def main(argv: list[str] | None = None) -> int:
         manifest = generate_asset_bank(args.output, AssetBankConfig(seed=args.seed))
         print(f"asset bank complete: {args.output}")
         print(f"generated {len(manifest['assets'])} PNG assets")
+        return 0
+    if args.command == "render-contact":
+        summary = render_balanced_contact_dataset(
+            config=PhysicsConfig(),
+            num_proposals=args.num_proposals,
+            scene_seed=args.scene_seed,
+            selection_seed=args.selection_seed,
+            render_seed_root=args.render_seed,
+            output_dir=args.output,
+            asset_bank_root=args.asset_bank,
+            families=args.families,
+            max_per_class=args.max_per_class,
+            supersample=args.supersample,
+        )
+        print(f"rendered Contact dataset: {args.output}")
+        print(summary["rendered_status_counts"])
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
 

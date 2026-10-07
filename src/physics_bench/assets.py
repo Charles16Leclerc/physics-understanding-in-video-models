@@ -592,7 +592,7 @@ def _rounded_mask(size: tuple[int, int], radius_px: int, config: AssetBankConfig
     return mask.resize(size, Image.Resampling.LANCZOS)
 
 
-def _compose_background(
+def compose_background_layers(
     family: str,
     outside: Any,
     surface: Any,
@@ -783,7 +783,7 @@ def generate_asset_bank(
             outside_index = index % len(OUTSIDE_COLORS[family])
             rail_index = index % len(RAIL_COLORS[family])
             marking = cached_markings[index % 3] if family == "air_hockey" else None
-            preview = _compose_background(
+            preview = compose_background_layers(
                 family,
                 cached_outside[(family, outside_index)],
                 cached_surfaces[(family, index)],
