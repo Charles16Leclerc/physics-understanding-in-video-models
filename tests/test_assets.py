@@ -16,7 +16,10 @@ class AssetBankTests(unittest.TestCase):
         from PIL import Image
 
         config = AssetBankConfig(seed=12345, supersample=2)
-        with tempfile.TemporaryDirectory() as first_directory, tempfile.TemporaryDirectory() as second_directory:
+        with (
+            tempfile.TemporaryDirectory() as first_directory,
+            tempfile.TemporaryDirectory() as second_directory,
+        ):
             first_root = Path(first_directory)
             second_root = Path(second_directory)
             first = generate_asset_bank(first_root, config)
@@ -56,6 +59,36 @@ class AssetBankTests(unittest.TestCase):
                 self.assertEqual(barrier.size, (140, 28))
                 array = np.asarray(barrier)
                 np.testing.assert_array_equal(array, array[::-1, ::-1])
+                # The 17.5 px end plates differ visibly from the 105 px central body.
+                self.assertGreater(
+                    np.linalg.norm(
+                        array[14, 8, :3].astype(float) - array[14, 70, :3].astype(float)
+                    ),
+                    8.0,
+                )
+                # A screw center contains the dark cross recess, not just a plain circular dot.
+                self.assertLess(float(np.mean(array[8, 9, :3])), float(np.mean(array[5, 6, :3])))
+
+            canonical_surface_path = first_root / "surfaces" / "canonical_neutral" / "surface_0.png"
+            with Image.open(canonical_surface_path) as surface:
+                self.assertEqual(surface.size, (420, 308))
+                self.assertGreater(float(np.std(np.asarray(surface, dtype=float))), 0.5)
+
+            air_rail_path = first_root / "rails" / "air_hockey" / "rail_0.png"
+            with Image.open(air_rail_path) as air_rail:
+                self.assertEqual(air_rail.size, (436, 324))
+
+            marking_path = first_root / "markings" / "air_hockey" / "marking_2.png"
+            with Image.open(marking_path) as marking:
+                marking_array = np.asarray(marking)
+                np.testing.assert_array_equal(marking_array, marking_array[::-1, ::-1])
+
+            self.assertEqual(first["barrier_structure"]["central_body_length_px"], 105)
+            self.assertEqual(first["barrier_structure"]["screw_count"], 4)
+            self.assertEqual(
+                first["family_layouts"]["air_hockey"]["outer_table_size_px"],
+                [436, 324],
+            )
 
             preview_path = first_root / "background_previews" / "billiards" / "background_0.png"
             with Image.open(preview_path) as preview:

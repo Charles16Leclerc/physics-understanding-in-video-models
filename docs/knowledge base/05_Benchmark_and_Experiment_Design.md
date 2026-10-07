@@ -147,7 +147,7 @@ barrier_axis_angle_rad ∈ [0, π)
 
 ## 2.1 Visual table
 
-Visual table 固定为：
+Visual table 的 **base playing-surface footprint** 固定为：
 
 $$
 \boxed{15\times11\ \text{cells}=420\times308\ \text{px}}.
@@ -164,6 +164,10 @@ y\in[-154,154].
 $$
 
 桌边只承担**俯视水平桌面**的视觉语义，不参与 v1 物理碰撞。
+
+对于 Air-Hockey family，语义桌沿允许在这个 420×308 base footprint 之外每侧再扩展 8 px，
+因此可见 outer footprint 为 436×324 px；新增部分只用于大圆角和桌沿语义，仍不参与 physics。
+其他 family 的 outer footprint 保持 420×308 px。
 
 ## 2.2 Physics ROI
 
@@ -2598,12 +2602,15 @@ Canonical 的视觉资产**全部固定**，不对每个 scene 随机变化：
 
 ```text
 canonical_surface_rgb       = [226, 226, 221]   # off-white / light warm gray
-canonical_outer_rail_rgb    = [108, 113, 118]   # medium neutral gray
+canonical_outer_rail_rgb    = [226, 226, 221]   # same-tone hairline only; no wide rail
 canonical_outside_rgb       = [48, 50, 52]      # dark charcoal
 canonical_ball_rgb          = [182, 62, 56]     # muted red
 canonical_barrier_rgb       = [76, 81, 86]      # dark neutral metal
-canonical_bolt_rgb          = [148, 153, 157]   # light gray metal
+canonical_bolt_rgb          = [181, 185, 188]   # visible cross-recess screw heads
 ```
+
+Canonical surface 使用固定 seed 的低对比浅木纹，并移除不同颜色的宽桌沿；这仍属于 fixed
+canonical asset，而不是 per-scene texture randomization。桌角使用约 6 px 小圆角。
 
 这些 RGB 是 renderer v1 的默认值；若后续只做不改变结构的细微视觉调优，应增加 `renderer_version`，而不是改 simulator dataset version。
 
@@ -2685,7 +2692,7 @@ $$
 
 ## 27.1 所有 family 的共同空间原则
 
-Visual table 的 outer footprint 始终是：
+Visual table 的 base playing-surface footprint 始终是：
 
 $$
 420\times308\ \text{px}=15\times11\ \text{cells}.
@@ -2697,7 +2704,7 @@ Physics ROI 仍只存在于 latent geometry 中，**不得在画面中显式画�
 
 > 这是一个从上方观察的水平桌面，而不是填满 frame 的竖直纹理平面。
 
-Visual table 的 outer rail / border 只能占用 Physics ROI 外侧的视觉缓冲带，不得侵入 Physics ROI 形成新的潜在“物理墙”。
+Visual table 的 outer rail / border 不得侵入 Physics ROI 形成新的潜在“物理墙”。
 
 建议 outer rail 的可见厚度：
 
@@ -2705,7 +2712,8 @@ Visual table 的 outer rail / border 只能占用 Physics ROI 外侧的视觉缓
 6–10 px
 ```
 
-始终小于 table 与 Physics ROI 之间每侧 14 px 的视觉 buffer。
+通常小于 table 与 Physics ROI 之间每侧 14 px 的视觉 buffer。Air-Hockey 的 8 px rail
+位于 420×308 base footprint 外侧，使 outer footprint 扩展为 436×324 px，不消耗内部 buffer。
 
 ## 27.2 桌外区域的统一设计原则
 
@@ -2760,9 +2768,14 @@ Texture 只允许非常弱的无方向 fine noise / felt grain；luminance varia
 
 允许极弱 wood-like variation，但不得出现明显单方向长木纹。
 
+桌沿采用两层结构：外侧 7 px 为上述深色木制边沿，内侧 5 px 为绿色 felt cushion。
+felt cushion 与主桌面之间必须有一条低对比但可见的分界线。outer corner 使用约 13 px
+圆角，避免画框式直角。
+
 ### Pockets
 
-可保留标准 top-down billiards pockets 作为 semantic cue。
+保留六个标准 top-down 圆形 billiards pockets 作为 semantic cue，v1 直径约 14 px。
+球袋周围不添加与其他外侧木沿不同色的金属/皮革 patch。
 
 Pockets 只存在于 table edge；Physics ROI 与 ball-center legal region 已使主轨迹远离桌边，因此 pocket 不参与 v1 physics。
 
@@ -2790,13 +2803,19 @@ air_surface_2 = [244, 243, 237]
 air_surface_3 = [235, 238, 236]
 ```
 
+桌面必须加入浅色、低 contrast 的规则 air holes。v1 使用约 14 px 间距、约 1 px
+可见直径的小孔；小孔只提供 air-hockey 语义，不参与 physics。
+
 ### Markings
 
-允许：
+应包含标准、完全对称且低 contrast 的：
 
 - center line；
 - center circle；
-- 少量左右对称的 rink / goal-area markings。
+- zone / goal lines；
+- 四个 face-off circles 及内部 crosshair；
+- 对称 face-off dots；
+- 可选 goal arcs / inset rink outline。
 
 要求：
 
@@ -2817,6 +2836,9 @@ medium gray / blue-gray / dark neutral plastic：
 [82, 91, 103]
 [110, 112, 114]
 ```
+
+Air-Hockey playing surface 仍为 420×308 px；8 px rail 向其外侧扩展，因此 outer footprint
+为 436×324 px。四角 radius 默认 58 px，明确形成大圆角 table/rink silhouette。
 
 ### Outside-table background
 
@@ -2843,28 +2865,24 @@ tabletop_surface_3 = [219, 225, 228]   # pale blue-gray
 允许：
 
 - 极弱 low-frequency mottling；
-- 极弱细纹；
+- 弱而可辨认的 procedural 浅木纹；
 - 低 contrast procedural texture。
 
 禁止：
 
-- 明显 wood grain 主方向；
+- 高对比、周期性或近似平行线网格的 wood grain；
 - 砖缝；
 - 网格；
 - 长直线纹路；
 - perspective floor texture。
 
-如果使用 wood-like preset，纹理 amplitude 必须低到不会成为 barrier / velocity direction 的显著参照。
+wood grain 可沿桌面长轴形成弱方向性，以增强水平桌面语义，但必须非周期、独立采样且
+luminance amplitude 约不超过 3.2%，并纳入 appearance–label independence audit。
 
 ### Table edge
 
-可为：
-
-- neutral gray；
-- pale wood；
-- muted metal。
-
-但都只作为视觉桌沿，不参与 physics。
+Canonical 与 Tabletop 默认不画不同颜色的 picture-frame 式桌沿。桌面依靠木纹、桌外背景
+contrast 和约 6 px 的小圆角表达边界；允许极细、同色系 edge line，但不允许形成宽 rail。
 
 ### Outside-table background
 
@@ -3026,16 +3044,25 @@ $$
 
 v1 使用：
 
-> **厚重矩形 rail + 内部 bevel/border + 4 个 recessed bolt heads**。
+> **105 px 厚重中央主体 + 两端各 17.5 px 扁平固定片 + 4 个 cross-recess screw heads**。
 
 所有视觉固定结构完全位于 barrier rectangle 内。
 
-建议 local barrier coordinates 中 4 个 bolt center：
+沿 long axis 的分区固定为：
 
 ```text
-u = ±45 px
-v = ±5 px
-bolt_radius = 2.5 px
+left end plate    = 17.5 px
+central body      = 105 px = 3.75 cell
+right end plate   = 17.5 px
+```
+
+四个 screw head 只放在两端固定片上，每端两个：
+
+```text
+u = ±61.25 px
+v = ±6 px
+screw_head_radius = 5.5 px
+screw_drive       = cross_recess
 ```
 
 其中：
@@ -3043,9 +3070,11 @@ bolt_radius = 2.5 px
 - $u$ 沿 barrier long axis；
 - $v$ 沿 barrier short axis。
 
-四个 bolt 对称布置，避免形成箭头、正负方向或某一端“更重”的视觉暗示。
+四个 screw 对称布置，十字槽在原始 448 视频尺度下应可辨认，且不能形成箭头、正负方向
+或某一端“更重”的视觉暗示。
 
-Barrier 可以再画一个完全位于 footprint 内的 2 px inset bevel / border，以增强“厚重 rail”感。
+中央主体与两端固定片必须使用可区分但同材质系的颜色/明度；中央主体可再画完全位于其
+105×28 footprint 内的 2 px inset bevel / border，以表达主体更高、端片更扁。
 
 ### 关键限制
 
@@ -3058,10 +3087,11 @@ Barrier 的视觉装饰必须保持 180° 对称，不能让模型通过纹理�
 ```text
 material_id = canonical_dark_metal
 base_rgb    = [76, 81, 86]
-bolt_rgb    = [148, 153, 157]
+screw_head_rgb = [181, 185, 188]
 texture     = none
 bevel       = enabled
 bolt_count  = 4
+screw_drive = cross_recess
 ```
 
 ## 28.6 Diverse barrier materials
@@ -4520,7 +4550,7 @@ manifest_config_hash
 - Canonical appearance 固定；
 - Diverse 使用 discrete preset + small jitter；
 - ball 为纯色、无方向纹理；
-- barrier 通过 footprint 内 bolt / bevel 暗示固定；
+- barrier 通过 footprint 内中央主体、端片、十字螺钉与 bevel 暗示固定；
 - support 不得突出 barrier footprint；
 - 不使用 directional cast shadow；
 - 不使用生成式 AI 图片作为核心 asset source；
@@ -4530,7 +4560,7 @@ manifest_config_hash
 以下不再视为 pilot 未定项：
 
 - 448×448 frame；
-- 15×11 visual table；
+- 15×11 base playing surface（Air-Hockey outer rail 可扩展至 436×324 px）；
 - 14×10 Physics ROI；
 - 35 px ball；
 - 5×1 cell barrier；
@@ -4834,7 +4864,7 @@ $$
 ## Renderer / Visual Asset Bank
 
 - [ ] 448×448 output；
-- [ ] 15×11 visual table；
+- [ ] 15×11 base playing surface；Air-Hockey outer rail = 436×324 px；
 - [ ] 14×10 Physics ROI only exists in latent geometry, not drawn as an artificial box；
 - [ ] Canonical = fixed neutral puck-table appearance；
 - [ ] Diverse = billiards / air_hockey / tabletop；
@@ -4842,7 +4872,7 @@ $$
 - [ ] ball = solid-color, axisymmetric, no orientation texture；
 - [ ] ball palette avoids low contrast with family surface；
 - [ ] barrier silhouette exactly matches rectangle footprint；
-- [ ] barrier fixed cue uses only internal bevel + 4 symmetric bolts；
+- [ ] barrier fixed cue = 105 px central body + two 17.5 px end plates + 4 symmetric cross screws；
 - [ ] support entirely inside barrier footprint；
 - [ ] no motion blur；
 - [ ] no directional light / cast shadow；
